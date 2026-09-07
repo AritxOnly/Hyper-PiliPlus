@@ -58,6 +58,7 @@ class MainController extends GetxController
 
   final enableMYBar = Pref.enableMYBar;
   final floatingNavBar = Pref.floatingNavBar;
+  final miuixBackdropSampling = Pref.miuixBackdropSampling;
   final useSideBar = Pref.useSideBar;
   final mainTabBarView = Pref.mainTabBarView;
   late final optTabletNav = Pref.optTabletNav;

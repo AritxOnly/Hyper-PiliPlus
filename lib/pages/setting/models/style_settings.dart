@@ -118,9 +118,17 @@ List<SettingsModel> get styleSettings => [
     needReboot: true,
   ),
   const SwitchModel(
-    title: '悬浮底栏',
+    title: 'Deadliner 悬浮底栏（MIUIX）',
     leading: Icon(MdiIcons.soundbar),
     setKey: SettingBoxKey.floatingNavBar,
+    defaultVal: false,
+    needReboot: true,
+  ),
+  const SwitchModel(
+    title: '底栏背板调试面板',
+    subtitle: '显示 PixelCopy 原图、坐标、帧数和采样耗时',
+    leading: Icon(Icons.bug_report_outlined),
+    setKey: SettingBoxKey.miuixBackdropSampling,
     defaultVal: false,
     needReboot: true,
   ),
@@ -309,18 +317,17 @@ List<SettingsModel> get styleSettings => [
     onTap: (context, setState) => Get.toNamed('/colorSetting'),
     leading: const Icon(Icons.color_lens_outlined),
     title: '应用主题',
-    getSubtitle: () => '当前主题：${Pref.dynamicColor ? '动态取色' : '指定颜色'}',
-    getTrailing: (theme) => Pref.dynamicColor
-        ? Icon(Icons.color_lens_rounded, color: theme.colorScheme.primary)
-        : SizedBox.square(
-            dimension: 20,
-            child: ColorPalette(
-              colorScheme: colorThemeTypes[Pref.customColor].color
-                  .asColorSchemeSeed(Pref.schemeVariant, theme.brightness),
-              selected: false,
-              showBgColor: false,
-            ),
-          ),
+    getSubtitle: () => '当前主题：${colorThemeTypes[Pref.customColor].label}',
+    getTrailing: (theme) => SizedBox.square(
+      dimension: 20,
+      child: ColorPalette(
+        colorScheme: colorThemeTypes[Pref.customColor]
+            .colorFor(theme.brightness)
+            .asMiuixPresetColorScheme(theme.brightness),
+        selected: false,
+        showBgColor: false,
+      ),
+    ),
   ),
   PopupModel(
     leading: const Icon(Icons.home_outlined),

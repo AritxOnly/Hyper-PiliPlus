@@ -1,4 +1,4 @@
-package com.example.piliplus
+package com.aritxonly.hyperpiliplus
 
 import android.os.Build
 import android.os.Bundle

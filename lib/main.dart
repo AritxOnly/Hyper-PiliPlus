@@ -18,7 +18,6 @@ import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/utils/cache_manager.dart';
 import 'package:PiliPlus/utils/calc_window_position.dart';
 import 'package:PiliPlus/utils/date_utils.dart';
-import 'package:PiliPlus/utils/extension/core_palettes_ext.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
 import 'package:PiliPlus/utils/font_utils.dart';
 import 'package:PiliPlus/utils/json_file_handler.dart';
@@ -33,7 +32,6 @@ import 'package:PiliPlus/utils/theme_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:catcher_2/catcher_2.dart';
 import 'package:collection/collection.dart';
-import 'package:dynamic_color/dynamic_color.dart' show DynamicColorPlugin;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -186,10 +184,6 @@ void main() async {
     });
   }
 
-  if (Pref.dynamicColor) {
-    await MyApp.initPlatformState();
-  }
-
   if (Pref.enableLog) {
     // 异常捕获 logo记录
     final customParameters = {
@@ -245,25 +239,15 @@ void _onBack() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  static ColorScheme? _light, _dark;
-
   static (ThemeData, ThemeData) getAllTheme() {
-    final dynamicColor = _light != null && _dark != null && Pref.dynamicColor;
-    late final brandColor = colorThemeTypes[Pref.customColor].color;
-    late final variant = Pref.schemeVariant;
+    final preset = colorThemeTypes[Pref.customColor];
     return (
       ThemeUtils.lightTheme = ThemeUtils.getThemeData(
-        colorScheme: dynamicColor
-            ? _light!
-            : brandColor.asColorSchemeSeed(variant, .light),
-        isDynamic: dynamicColor,
+        colorScheme: preset.lightColor.asMiuixPresetColorScheme(.light),
       ),
       ThemeUtils.darkTheme = ThemeUtils.getThemeData(
         isDark: true,
-        colorScheme: dynamicColor
-            ? _dark!
-            : brandColor.asColorSchemeSeed(variant, .dark),
-        isDynamic: dynamicColor,
+        colorScheme: preset.darkColor.asMiuixPresetColorScheme(.dark),
       ),
     );
   }
@@ -334,54 +318,6 @@ class MyApp extends StatelessWidget {
       );
     }
     return child;
-  }
-
-  /// from [DynamicColorBuilderState.initPlatformState]
-  static Future<bool> initPlatformState() async {
-    if (_light != null || _dark != null) return true;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    try {
-      final colors = await DynamicColorPlugin.channel.invokeMethod(
-        DynamicColorPlugin.methodName,
-      );
-
-      if (colors != null) {
-        final corePalettes = CorePalettesExt.fromList(colors.toList());
-        if (kDebugMode) {
-          debugPrint('dynamic_color: Core palette detected.');
-        }
-        _light = corePalettes.toColorScheme();
-        _dark = corePalettes.toColorScheme(brightness: Brightness.dark);
-        return true;
-      }
-    } on PlatformException {
-      if (kDebugMode) {
-        debugPrint('dynamic_color: Failed to obtain core palette.');
-      }
-    }
-
-    try {
-      final Color? accentColor = await DynamicColorPlugin.getAccentColor();
-
-      if (accentColor != null) {
-        if (kDebugMode) {
-          debugPrint('dynamic_color: Accent color detected.');
-        }
-        final variant = Pref.schemeVariant;
-        _light = accentColor.asColorSchemeSeed(variant, .light);
-        _dark = accentColor.asColorSchemeSeed(variant, .dark);
-        return true;
-      }
-    } on PlatformException {
-      if (kDebugMode) {
-        debugPrint('dynamic_color: Failed to obtain accent color.');
-      }
-    }
-    if (kDebugMode) {
-      debugPrint('dynamic_color: Dynamic color not detected on this device.');
-    }
-    GStorage.setting.put(SettingBoxKey.dynamicColor, false);
-    return false;
   }
 }
 

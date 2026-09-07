@@ -77,7 +77,6 @@ dependencies:
   dio: ^5.9.1
   dio_http2_adapter: ^2.7.1
   dlna_dart: ^0.1.0
-  dynamic_color: ^2.1.0
   easy_debounce: ^2.0.3
   encrypt: ^5.0.3
   extended_nested_scroll_view:
@@ -123,7 +122,6 @@ dependencies:
   json_annotation: ^4.11.0
   live_photo_maker: ^0.0.6
   logger: ^2.5.0
-  material_color_utilities: ^0.13.0
   material_design_icons_flutter:
     git:
       url: https://github.com/bggRGjQaUbCoE/material_design_icons_flutter.git

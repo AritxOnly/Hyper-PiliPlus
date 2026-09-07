@@ -29,9 +29,9 @@ abstract final class ThemeUtils {
 
   static ThemeData getThemeData({
     required ColorScheme colorScheme,
-    required bool isDynamic,
     bool isDark = false,
   }) {
+    colorScheme = _withMiuixNeutralSurfaces(colorScheme, isDark: isDark);
     final fontWeight = Pref.appFontWeight;
     final fontFamily = FontUtils.fontFamily;
 
@@ -93,6 +93,7 @@ abstract final class ThemeUtils {
         surfaceTintColor: isDark ? colorScheme.surfaceContainerHighest : null,
       ),
       cardTheme: CardThemeData(
+        color: colorScheme.surfaceContainer,
         elevation: 1,
         margin: EdgeInsets.zero,
         shadowColor: Colors.transparent,
@@ -169,6 +170,54 @@ abstract final class ThemeUtils {
       return darkenTheme(theme);
     }
     return theme;
+  }
+
+  /// Deadliner's Miuix layer keeps the user's accent palette, but uses the
+  /// HyperOS neutral surfaces and text colours for the app canvas and elevated
+  /// containers. This prevents a yellow, green, or other preset from tinting
+  /// supporting text such as video authors and statistics.
+  /// Applying this before the component themes keeps pages, dialogs and bars
+  /// visually coherent without replacing the user's selected seed colour.
+  static ColorScheme _withMiuixNeutralSurfaces(
+    ColorScheme scheme, {
+    required bool isDark,
+  }) {
+    if (isDark) {
+      return scheme.copyWith(
+        background: Colors.black,
+        onBackground: const Color(0xFFF2F2F2),
+        surface: Colors.black,
+        onSurface: const Color(0xFFF2F2F2),
+        surfaceVariant: const Color(0xFF333333),
+        onSurfaceVariant: const Color(0xFFA6A6A6),
+        surfaceContainerLowest: Colors.black,
+        surfaceContainerLow: const Color(0xFF242424),
+        surfaceContainer: const Color(0xFF242424),
+        surfaceContainerHigh: const Color(0xFF242424),
+        surfaceContainerHighest: const Color(0xFF2D2D2D),
+        surfaceBright: const Color(0xFF242424),
+        surfaceDim: const Color(0xFF242424),
+        outline: const Color(0xFFA6A6A6),
+        outlineVariant: const Color(0xFF393939),
+      );
+    }
+    return scheme.copyWith(
+      background: const Color(0xFFF3F3F3),
+      onBackground: const Color(0xFF191919),
+      surface: const Color(0xFFF3F3F3),
+      onSurface: const Color(0xFF191919),
+      surfaceVariant: const Color(0xFFECECEC),
+      onSurfaceVariant: const Color(0xFF6F6F6F),
+      surfaceContainerLowest: const Color(0xFFF3F3F3),
+      surfaceContainerLow: const Color(0xFFF3F3F3),
+      surfaceContainer: Colors.white,
+      surfaceContainerHigh: const Color(0xFFE8E8E8),
+      surfaceContainerHighest: const Color(0xFFE8E8E8),
+      surfaceBright: Colors.white,
+      surfaceDim: const Color(0xFFE8E8E8),
+      outline: const Color(0xFF6F6F6F),
+      outlineVariant: const Color(0xFFE0E0E0),
+    );
   }
 
   static ThemeData darkenTheme(ThemeData theme) {

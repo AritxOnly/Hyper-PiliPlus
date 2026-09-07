@@ -1,4 +1,4 @@
-package com.example.piliplus;
+package com.aritxonly.hyperpiliplus;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;

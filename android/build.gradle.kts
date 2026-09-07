@@ -18,6 +18,20 @@ subprojects {
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
 
+// AGP 9's legacy Kotlin mode does not automatically create the Kotlin Android
+// extension. Several Flutter plugins configure that extension in their own
+// build scripts, so apply the compatibility plugin before those scripts run.
+subprojects {
+    if (providers.gradleProperty("android.builtInKotlin").orNull == "false") {
+        plugins.withId("com.android.application") {
+            pluginManager.apply("org.jetbrains.kotlin.android")
+        }
+        plugins.withId("com.android.library") {
+            pluginManager.apply("org.jetbrains.kotlin.android")
+        }
+    }
+}
+
 subprojects {
     afterEvaluate {
         if (project.extensions.findByName("android") != null) {

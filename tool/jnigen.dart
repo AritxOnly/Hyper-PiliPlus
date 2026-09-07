@@ -15,7 +15,7 @@ void main(List<String> args) {
       androidSdkConfig: AndroidSdkConfig(addGradleDeps: true),
       sourcePath: [packageRoot.resolve('android/app/src/main/java')],
       classes: [
-        'com.example.piliplus.AndroidHelper',
+        'com.aritxonly.hyperpiliplus.AndroidHelper',
         'java.lang.Runnable',
       ],
     ),

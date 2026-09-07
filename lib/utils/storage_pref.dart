@@ -42,7 +42,6 @@ import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flex_seed_scheme/flex_seed_scheme.dart' show FlexSchemeVariant;
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:hive_ce/hive.dart';
@@ -347,12 +346,6 @@ abstract final class Pref {
 
   static int get dynamicPeriod =>
       _setting.get(SettingBoxKey.dynamicPeriod, defaultValue: 5);
-
-  static FlexSchemeVariant get schemeVariant =>
-      FlexSchemeVariant.values[_setting.get(
-        SettingBoxKey.schemeVariant,
-        defaultValue: FlexSchemeVariant.material3Legacy.index,
-      )];
 
   static double get danmakuFontScaleFS => _setting.get(
     SettingBoxKey.danmakuFontScaleFS,
@@ -733,10 +726,6 @@ abstract final class Pref {
   static int get customColor =>
       _setting.get(SettingBoxKey.customColor, defaultValue: 0);
 
-  static bool get dynamicColor =>
-      !Platform.isIOS &&
-      _setting.get(SettingBoxKey.dynamicColor, defaultValue: true);
-
   static bool get enableSystemProxy =>
       _setting.get(SettingBoxKey.enableSystemProxy, defaultValue: false);
 
@@ -1027,6 +1016,9 @@ abstract final class Pref {
 
   static bool get floatingNavBar =>
       _setting.get(SettingBoxKey.floatingNavBar, defaultValue: false);
+
+  static bool get miuixBackdropSampling =>
+      _setting.get(SettingBoxKey.miuixBackdropSampling, defaultValue: false);
 
   static bool get removeSafeArea =>
       _setting.get(SettingBoxKey.removeSafeArea, defaultValue: false);

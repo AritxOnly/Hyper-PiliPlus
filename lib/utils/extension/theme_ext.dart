@@ -33,15 +33,16 @@ extension ColorExtension on Color {
     return Color.lerp(this, Colors.black, amount)!;
   }
 
-  ColorScheme asColorSchemeSeed([
-    FlexSchemeVariant variant = .material,
-    Brightness brightness = .light,
-  ]) => SeedColorScheme.fromSeeds(
-    primaryKey: this,
-    variant: variant,
-    brightness: brightness,
-    useExpressiveOnContainerColors: false,
-  );
+  /// Matches Deadliner's Miuix preset pipeline: Material generates every
+  /// supporting role from a tonal-spot seed, while the selected preset remains
+  /// the exact primary colour and always keeps white primary content.
+  ColorScheme asMiuixPresetColorScheme(Brightness brightness) =>
+      SeedColorScheme.fromSeeds(
+        primaryKey: this,
+        variant: FlexSchemeVariant.tonalSpot,
+        brightness: brightness,
+        useExpressiveOnContainerColors: false,
+      ).copyWith(primary: this, onPrimary: Colors.white);
 }
 
 extension BrightnessExt on Brightness {

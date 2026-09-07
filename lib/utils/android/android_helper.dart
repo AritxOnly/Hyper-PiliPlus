@@ -3,9 +3,55 @@ import 'dart:ui';
 
 import 'package:PiliPlus/utils/android/bindings.g.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:flutter/services.dart' show MethodCall, MethodChannel;
 import 'package:jni/jni.dart';
 
 abstract final class PiliAndroidHelper {
+  static const _miuixNavigationChannel = MethodChannel(
+    'com.aritxonly.hyperpiliplus/miuix_navigation',
+  );
+  static void Function(int index)? _onMiuixDestinationSelected;
+
+  static void setMiuixDestinationHandler(void Function(int index)? handler) {
+    _onMiuixDestinationSelected = handler;
+    _miuixNavigationChannel.setMethodCallHandler((call) async {
+      if (call.method == 'selectDestination' && call.arguments is int) {
+        _onMiuixDestinationSelected?.call(call.arguments as int);
+      }
+    });
+  }
+
+  static Future<void> updateMiuixNavigation({
+    required List<Map<String, String>> destinations,
+    required int selectedIndex,
+    required bool visible,
+    required bool dark,
+    required int primary,
+    required int background,
+    required int surface,
+    required int surfaceContainer,
+    required int onSurface,
+    required int outline,
+    required bool backdropSampling,
+    required bool backdropDebug,
+  }) => _miuixNavigationChannel.invokeMethod<void>('update', {
+    'destinations': destinations,
+    'selectedIndex': selectedIndex,
+    'visible': visible,
+    'dark': dark,
+    'primary': primary,
+    'background': background,
+    'surface': surface,
+    'surfaceContainer': surfaceContainer,
+    'onSurface': onSurface,
+    'outline': outline,
+    'backdropSampling': backdropSampling,
+    'backdropDebug': backdropDebug,
+  });
+
+  static Future<void> hideMiuixNavigation() =>
+      _miuixNavigationChannel.invokeMethod<void>('hide');
+
   @pragma('vm:prefer-inline')
   static void back() => AndroidHelper.back();
 

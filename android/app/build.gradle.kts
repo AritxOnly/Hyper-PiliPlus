@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.konan.properties.Properties
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -18,9 +19,10 @@ if (!isBuiltInKotlinEnabled) {
 }
 
 android {
-    namespace = "com.example.piliplus"
+    namespace = "com.aritxonly.hyperpiliplus"
     compileSdk = 37
-    ndkVersion = flutter.ndkVersion
+    // Keep every native Flutter plugin on the installed, newest compatible NDK.
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -28,8 +30,10 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.piliplus"
-        minSdk = flutter.minSdkVersion
+        applicationId = "com.aritxonly.hyperpiliplus"
+        // Deadliner's original soft-glass bar uses miuix-blur, whose Android
+        // RuntimeShader path has an API 33 baseline.
+        minSdk = maxOf(flutter.minSdkVersion, 33)
         targetSdk = 37
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -55,6 +59,7 @@ android {
     }
 
     buildFeatures {
+        compose = true
         if (project.hasProperty("dev")) {
             resValues = true
         }
@@ -91,12 +96,14 @@ android {
     }
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
-    }
-}
-
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("androidx.compose.material3:material3:1.5.0-alpha22")
+    implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.4-rc01")
+    implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.4-rc01")
+    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.4-rc01")
+    implementation("io.github.kyant0:shapes:1.2.0")
 }

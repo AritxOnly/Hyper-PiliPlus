@@ -48,6 +48,7 @@ class _MainAppState extends PopScopeState<MainApp>
   late EdgeInsets _padding;
   late ColorScheme _colorScheme;
   Brightness? _brightness;
+  bool _isMainRouteActive = true;
 
   @override
   bool get initCanPop => false;
@@ -55,6 +56,9 @@ class _MainAppState extends PopScopeState<MainApp>
   @override
   void initState() {
     super.initState();
+    if (Platform.isAndroid) {
+      PiliAndroidHelper.setMiuixDestinationHandler(_mainController.setIndex);
+    }
     addObserverMobile(this);
     if (Platform.isMacOS) {
       HardwareKeyboard.instance.addHandler(_handleKeyEvent);
@@ -94,16 +98,24 @@ class _MainAppState extends PopScopeState<MainApp>
 
   @override
   void didPopNext() {
+    _isMainRouteActive = true;
     addObserverMobile(this);
     _mainController
       ..checkUnreadDynamic()
       ..checkDefaultSearch(true)
       ..checkUnread(_mainController.useBottomNav);
+    if (Platform.isAndroid && mounted) {
+      setState(() {});
+    }
     super.didPopNext();
   }
 
   @override
   void didPushNext() {
+    _isMainRouteActive = false;
+    if (Platform.isAndroid) {
+      PiliAndroidHelper.hideMiuixNavigation();
+    }
     removeObserverMobile(this);
     super.didPushNext();
   }
@@ -120,6 +132,10 @@ class _MainAppState extends PopScopeState<MainApp>
 
   @override
   void dispose() {
+    if (Platform.isAndroid) {
+      PiliAndroidHelper.setMiuixDestinationHandler(null);
+      PiliAndroidHelper.hideMiuixNavigation();
+    }
     if (Platform.isMacOS) {
       HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     }
@@ -322,6 +338,9 @@ class _MainAppState extends PopScopeState<MainApp>
 
   Widget? get _bottomNav {
     Widget? bottomNav;
+    if (_usesNativeMiuixNavigation) {
+      return null;
+    }
     if (_mainController.navigationBars.length > 1) {
       if (_mainController.floatingNavBar) {
         bottomNav = Obx(
@@ -405,6 +424,50 @@ class _MainAppState extends PopScopeState<MainApp>
 
     return bottomNav;
   }
+
+  bool get _usesNativeMiuixNavigation =>
+      Platform.isAndroid &&
+      _isMainRouteActive &&
+      _mainController.useBottomNav &&
+      _mainController.floatingNavBar &&
+      _mainController.navigationBars.length > 1;
+
+  bool get _nativeNavigationVisible {
+    if (!_mainController.hideBottomBar) return true;
+    if (_mainController.barOffset case final barOffset?) {
+      return barOffset.value == 0;
+    }
+    return _mainController.showBottomBar?.value ?? true;
+  }
+
+  Widget _nativeMiuixNavigationSync() => Obx(() {
+    final selectedIndex = _mainController.selectedIndex.value;
+    final visible = _nativeNavigationVisible;
+    final destinations = _mainController.navigationBars
+        .map((item) => <String, String>{'key': item.name, 'label': item.label})
+        .toList(growable: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      PiliAndroidHelper.updateMiuixNavigation(
+        destinations: destinations,
+        selectedIndex: selectedIndex,
+        visible: visible,
+        dark: _colorScheme.brightness.isDark,
+        primary: _colorScheme.primary.toARGB32(),
+        background: _colorScheme.background.toARGB32(),
+        surface: _colorScheme.surface.toARGB32(),
+        surfaceContainer: _colorScheme.surfaceContainer.toARGB32(),
+        onSurface: _colorScheme.onSurface.toARGB32(),
+        outline: _colorScheme.outline.toARGB32(),
+        // Compose cannot record Flutter's SurfaceView into a LayerBackdrop.
+        // The Android bridge therefore imports only the small region behind
+        // the bar while the page is moving, without adding a Flutter overlay.
+        backdropSampling: true,
+        backdropDebug: _mainController.miuixBackdropSampling,
+      );
+    });
+    return const SizedBox.shrink();
+  });
 
   Widget _sideBar() {
     if (_mainController.navigationBars.length > 1) {
@@ -493,6 +556,12 @@ class _MainAppState extends PopScopeState<MainApp>
 
     Widget? sideBar;
     Widget? bottomNav;
+    final useNativeMiuixNavigation = _usesNativeMiuixNavigation;
+    if (Platform.isAndroid && !useNativeMiuixNavigation) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) PiliAndroidHelper.hideMiuixNavigation();
+      });
+    }
     final EdgeInsets padding;
     if (_mainController.useBottomNav) {
       bottomNav = _bottomNav;
@@ -523,10 +592,15 @@ class _MainAppState extends PopScopeState<MainApp>
     }
 
     child = Material(
-      child: MainLayout(
-        sideBar: sideBar,
-        bottomNav: bottomNav,
-        body: Padding(padding: padding, child: child),
+      child: Stack(
+        children: [
+          MainLayout(
+            sideBar: sideBar,
+            bottomNav: bottomNav,
+            body: Padding(padding: padding, child: child),
+          ),
+          if (useNativeMiuixNavigation) _nativeMiuixNavigationSync(),
+        ],
       ),
     );
 
