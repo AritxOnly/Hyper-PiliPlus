@@ -10,8 +10,10 @@ class ActionPanel extends StatelessWidget {
   const ActionPanel({
     super.key,
     required this.item,
+    this.heroTag,
   });
   final DynamicItemModel item;
+  final String? heroTag;
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +73,7 @@ class ActionPanel extends StatelessWidget {
               item,
               isPush: true,
               viewComment: true,
+              heroTag: heroTag,
             ),
             icon: Icon(
               FontAwesomeIcons.comment,

@@ -4,6 +4,7 @@ import 'package:PiliPlus/build_config.dart';
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/back_detector.dart';
 import 'package:PiliPlus/common/widgets/custom_toast.dart';
+import 'package:PiliPlus/common/widgets/native_navigation_occlusion.dart';
 import 'package:PiliPlus/common/widgets/route_aware_mixin.dart';
 import 'package:PiliPlus/common/widgets/scale_app.dart';
 import 'package:PiliPlus/common/widgets/scroll_behavior.dart';
@@ -268,15 +269,19 @@ class MyApp extends StatelessWidget {
       getPages: Routes.getPages,
       defaultTransition: Pref.pageTransition,
       builder: FlutterSmartDialog.init(
-        toastBuilder: CustomToast.new,
-        loadingBuilder: LoadingWidget.new,
-        notifyStyle: const FlutterSmartNotifyStyle(
-          warningBuilder: NotifyWarning.new,
+        toastBuilder: (msg) =>
+            NativeNavigationForeground(child: CustomToast(msg)),
+        loadingBuilder: (msg) =>
+            NativeNavigationForeground(child: LoadingWidget(msg)),
+        notifyStyle: FlutterSmartNotifyStyle(
+          warningBuilder: (msg) =>
+              NativeNavigationForeground(child: NotifyWarning(msg)),
         ),
         builder: _builder,
       ),
       navigatorObservers: [
         routeObserver,
+        NativeNavigationPopupObserver(),
         FlutterSmartDialog.observer,
       ],
       scrollBehavior: PlatformUtils.isDesktop

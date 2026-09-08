@@ -17,6 +17,8 @@ import 'package:PiliPlus/models_new/video/video_detail/dimension.dart';
 import 'package:PiliPlus/pages/common/common_intro_controller.dart';
 import 'package:PiliPlus/pages/common/publish/publish_route.dart';
 import 'package:PiliPlus/pages/contact/view.dart';
+import 'package:PiliPlus/pages/article/view.dart';
+import 'package:PiliPlus/pages/dynamics_detail/view.dart';
 import 'package:PiliPlus/pages/fav_panel/view.dart';
 import 'package:PiliPlus/pages/share/view.dart';
 import 'package:PiliPlus/pages/video/view.dart';
@@ -116,6 +118,7 @@ abstract final class PageUtils {
     Object? rid,
     bool off = false,
     Object? type,
+    String? heroTag,
   }) async {
     assert(id != null || rid != null);
     SmartDialog.showLoading();
@@ -127,8 +130,9 @@ abstract final class PageUtils {
     SmartDialog.dismiss();
     if (res case Success(:final response)) {
       if (response.basic?.commentType == 12) {
-        toDupNamed(
+        _pushDynPage(
           '/articlePage',
+          heroTag: heroTag,
           parameters: {
             'id': id!,
             'type': 'opus',
@@ -136,8 +140,9 @@ abstract final class PageUtils {
           off: off,
         );
       } else {
-        toDupNamed(
+        _pushDynPage(
           '/dynamicDetail',
+          heroTag: heroTag,
           arguments: {
             'item': response,
           },
@@ -228,13 +233,15 @@ abstract final class PageUtils {
     DynamicItemModel item, {
     bool isPush = false,
     bool viewComment = false,
+    String? heroTag,
   }) async {
     feedBack();
 
     void push() {
       if (item.basic?.commentType == 12) {
-        toDupNamed(
+        _pushDynPage(
           '/articlePage',
+          heroTag: heroTag,
           parameters: {
             'id': item.idStr,
             'type': 'opus',
@@ -242,11 +249,12 @@ abstract final class PageUtils {
         );
       } else {
         if (item.linkFolded) {
-          pushDynFromId(id: item.idStr);
+          pushDynFromId(id: item.idStr, heroTag: heroTag);
           return;
         }
-        toDupNamed(
+        _pushDynPage(
           '/dynamicDetail',
+          heroTag: heroTag,
           arguments: {
             'item': item,
             if (viewComment) 'viewComment': true,
@@ -302,6 +310,7 @@ abstract final class PageUtils {
               cover: cover,
               dimension: res!.dimension,
               title: archive.title,
+              heroTag: heroTag,
             );
           }
         } catch (err) {
@@ -311,8 +320,9 @@ abstract final class PageUtils {
 
       /// 专栏文章查看
       case 'DYNAMIC_TYPE_ARTICLE':
-        toDupNamed(
+        _pushDynPage(
           '/articlePage',
+          heroTag: heroTag,
           parameters: {
             'id': item.idStr,
             'type': 'opus',
@@ -363,6 +373,7 @@ abstract final class PageUtils {
             cover: cover,
             dimension: res!.dimension,
             title: ugcSeason.title,
+            heroTag: heroTag,
           );
         }
         break;
@@ -372,7 +383,7 @@ abstract final class PageUtils {
         // if (kDebugMode) debugPrint('DYNAMIC_TYPE_PGC_UNION 番剧');
         final pgc = item.modules.moduleDynamic!.major!.pgc!;
         if (pgc.epid != null) {
-          viewPgc(epId: pgc.epid);
+          viewPgc(epId: pgc.epid, heroTag: heroTag);
         }
         break;
 
@@ -771,6 +782,39 @@ abstract final class PageUtils {
       SmartDialog.dismiss();
       SmartDialog.showToast(e.toString());
     }
+  }
+
+  static Future<void>? _pushDynPage(
+    String page, {
+    String? heroTag,
+    Map<String, dynamic>? arguments,
+    Map<String, String>? parameters,
+    bool off = false,
+  }) {
+    if (heroTag == null || !hasPendingVideoCardTransition(heroTag)) {
+      return toDupNamed<void>(
+        page,
+        arguments: arguments,
+        parameters: parameters,
+        off: off,
+      );
+    }
+    final navigator = Get.key.currentState;
+    if (navigator == null) return null;
+    // Match named-route parameter setup (ArticleController reads Get.parameters).
+    Get.parameters = parameters ?? {};
+    final route = VideoPageTransitionRoute<void>(
+      settings: RouteSettings(
+        name: page,
+        arguments: {...?arguments, 'heroTag': heroTag},
+      ),
+      builder: (_) => page == '/articlePage'
+          ? const ArticlePage()
+          : const DynamicDetailPage(),
+    );
+    return off
+        ? navigator.pushReplacement<void, void>(route)
+        : navigator.push<void>(route);
   }
 
   @pragma('vm:prefer-inline')

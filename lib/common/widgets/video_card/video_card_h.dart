@@ -75,6 +75,7 @@ class _VideoCardHState extends State<VideoCardH> {
         children: [
           VideoCardHero(
             tag: _heroTag,
+            surfaceColor: transitionBackgroundOf(context),
             child: Material(
               type: .transparency,
               child: InkWell(

@@ -15,6 +15,7 @@ import 'package:PiliPlus/common/widgets/scroll_physics.dart'
 import 'package:PiliPlus/common/widgets/sliver/sliver_floating_header.dart';
 import 'package:PiliPlus/common/widgets/sliver/sliver_to_box_adapter.dart';
 import 'package:PiliPlus/common/widgets/tap_region_surface.dart';
+import 'package:PiliPlus/common/widgets/video_card/video_card_transition.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
@@ -96,6 +97,8 @@ class _DynamicDetailPageState
   }
 
   ScrollableState? _scrollable;
+  late final Object? _transitionTag =
+      Get.arguments is Map ? Get.arguments['heroTag'] : null;
 
   @override
   void dispose() {
@@ -105,7 +108,7 @@ class _DynamicDetailPageState
 
   @override
   Widget build(BuildContext context) {
-    return SelectionTapRegionSurface(
+    final page = SelectionTapRegionSurface(
       /// apply `lib/scripts/scrollable.patch`
       isScrolling: () => _scrollable?.shouldIgnorePointer ?? false,
       child: SimpleScaffold(
@@ -120,6 +123,14 @@ class _DynamicDetailPageState
         ),
       ),
     );
+    final tag = _transitionTag;
+    return tag == null
+        ? page
+        : VideoPageHeroTarget(
+            tag: tag,
+            surfaceColor: Theme.of(context).canvasColor,
+            child: page,
+          );
   }
 
   void _onEdit() {

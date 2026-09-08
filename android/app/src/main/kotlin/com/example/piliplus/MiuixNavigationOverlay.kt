@@ -5,6 +5,7 @@ import android.graphics.Color as AndroidColor
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.ViewGroup
+import android.view.View
 import android.widget.FrameLayout
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -82,6 +83,7 @@ internal class MiuixNavigationOverlay(
     private var backdropSnapshot by mutableStateOf<FlutterBackdropSnapshot?>(null)
     private var backdropDebugState by mutableStateOf(FlutterBackdropDebugState())
     private var backdropSamplingPaused = false
+    private var overlayOccluded = false
     private var composeView: ComposeView? = null
     private var viewTreeOwner: OverlayViewTreeOwner? = null
     private val flutterRenderer = flutterEngine.renderer
@@ -115,6 +117,12 @@ internal class MiuixNavigationOverlay(
                 }
                 "setBackdropSamplingPaused" -> {
                     backdropSamplingPaused = call.arguments as? Boolean ?: false
+                    updateBackdropSampling()
+                    result.success(null)
+                }
+                "setOverlayOccluded" -> {
+                    overlayOccluded = call.arguments as? Boolean ?: false
+                    composeView?.visibility = if (overlayOccluded) View.INVISIBLE else View.VISIBLE
                     updateBackdropSampling()
                     result.success(null)
                 }
@@ -161,6 +169,7 @@ internal class MiuixNavigationOverlay(
             ),
         )
         composeView = view
+        view.visibility = if (overlayOccluded) View.INVISIBLE else View.VISIBLE
         viewTreeOwner = owner
     }
 
@@ -182,7 +191,7 @@ internal class MiuixNavigationOverlay(
 
     private fun updateBackdropSampling() {
         backdropSampler.setEnabled(
-            uiState.visible && uiState.backdropSampling && !backdropSamplingPaused,
+            uiState.visible && uiState.backdropSampling && !backdropSamplingPaused && !overlayOccluded,
         )
     }
 

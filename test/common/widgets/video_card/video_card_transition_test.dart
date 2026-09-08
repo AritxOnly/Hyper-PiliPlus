@@ -18,16 +18,18 @@ void main() {
     ) async {
       await tester.pumpWidget(
         GetMaterialApp(
+          theme: ThemeData(
+            cardColor: const Color(0xffbbaa77),
+            canvasColor: const Color(0xff223344),
+          ),
           navigatorObservers: [routeObserver],
           home: const _SourcePage(),
         ),
       );
       final card = find.byKey(const ValueKey('video-card'));
       final initial = tester.getRect(card);
-      final cardColor = Theme.of(tester.element(card))
-          .colorScheme
-          .surfaceContainer;
-      final pageColor = Theme.of(tester.element(card)).colorScheme.surface;
+      final cardColor = Theme.of(tester.element(card)).cardColor;
+      final pageColor = Theme.of(tester.element(card)).canvasColor;
       await tester.tap(card);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 16));
@@ -111,8 +113,9 @@ void main() {
               .widget<ColoredBox>(
                 find.byKey(const ValueKey('video-transition-surface')),
               )
-              .color,
-          Color.lerp(cardColor, pageColor, 1 - contraction),
+              .color
+              .toARGB32(),
+          Color.lerp(cardColor, pageColor, 1 - contraction)!.toARGB32(),
         );
         previousOpacity = opacity;
         expect(
@@ -147,6 +150,8 @@ class _SourcePage extends StatelessWidget {
     body: Center(
       child: VideoCardHero(
         tag: 'video-card-transition-test',
+        surfaceColor: Theme.of(context).cardColor,
+        preserveChildHeroes: true,
         child: InkWell(
           key: const ValueKey('video-card'),
           onTap: () => Navigator.of(context).push(
@@ -161,7 +166,10 @@ class _SourcePage extends StatelessWidget {
           child: const SizedBox(
             width: 180,
             height: 120,
-            child: ColoredBox(color: Colors.blue),
+            child: Hero(
+              tag: 'nested-image',
+              child: ColoredBox(color: Colors.blue),
+            ),
           ),
         ),
       ),
@@ -186,7 +194,7 @@ class _TargetPageState extends State<_TargetPage>
   @override
   Widget build(BuildContext context) => VideoPageHeroTarget(
     tag: 'video-card-transition-test',
-    surfaceColor: Theme.of(context).colorScheme.surface,
+    surfaceColor: Theme.of(context).canvasColor,
     child: const _ContentProbe(),
   );
 }

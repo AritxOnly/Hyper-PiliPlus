@@ -125,6 +125,7 @@ class _VideoCardVState extends State<VideoCardV> {
       children: [
         VideoCardHero(
           tag: _heroTag,
+          surfaceColor: Theme.of(context).colorScheme.surfaceContainer,
           child: Card(
             margin: .zero,
             color: Theme.of(context).colorScheme.surfaceContainer,

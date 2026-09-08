@@ -34,6 +34,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:html/parser.dart' as parser;
 import 'package:material_ui/material_ui.dart';
+import 'package:PiliPlus/common/widgets/video_card/video_card_transition.dart';
 
 class ArticlePage extends StatefulWidget {
   const ArticlePage({super.key});
@@ -43,6 +44,8 @@ class ArticlePage extends StatefulWidget {
 }
 
 class _ArticlePageState extends CommonDynPageState<ArticlePage> {
+  late final Object? _transitionTag =
+      Get.arguments is Map ? Get.arguments['heroTag'] : null;
   @override
   final ArticleController controller = Get.putOrFind(
     ArticleController.new,
@@ -56,7 +59,7 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
 
   @override
   Widget build(BuildContext context) {
-    return fabAnimWrapper(
+    final page = fabAnimWrapper(
       child: SimpleScaffold(
         appBar: _buildAppBar(),
         body: Padding(
@@ -69,6 +72,14 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
         ),
       ),
     );
+    final tag = _transitionTag;
+    return tag == null
+        ? page
+        : VideoPageHeroTarget(
+            tag: tag,
+            surfaceColor: Theme.of(context).canvasColor,
+            child: page,
+          );
   }
 
   Widget _buildPage() {

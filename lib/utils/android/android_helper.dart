@@ -52,6 +52,12 @@ abstract final class PiliAndroidHelper {
   static Future<void> hideMiuixNavigation() =>
       _miuixNavigationChannel.invokeMethod<void>('hide');
 
+  static Future<void> setMiuixOverlayOccluded(bool occluded) =>
+      _miuixNavigationChannel.invokeMethod<void>(
+        'setOverlayOccluded',
+        occluded,
+      );
+
   static Future<void> setMiuixBackdropSamplingPaused(bool paused) =>
       _miuixNavigationChannel.invokeMethod<void>(
         'setBackdropSamplingPaused',

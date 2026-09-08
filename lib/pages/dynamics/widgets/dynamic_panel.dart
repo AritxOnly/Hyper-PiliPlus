@@ -1,4 +1,5 @@
 import 'package:PiliPlus/common/widgets/avatars.dart';
+import 'package:PiliPlus/common/widgets/video_card/video_card_transition.dart';
 import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
@@ -61,6 +62,9 @@ class DynamicPanel extends StatelessWidget {
     void showMore() => _imageSaveDialog(context, authorWidget.morePanel);
 
     final isCard = !isSave && !isDetail;
+    final heroTag = isCard
+        ? 'dynamic-${item.idStr}-${identityHashCode(context)}'
+        : null;
     final child = Material(
       color: theme.colorScheme.surfaceContainer,
       borderRadius: isCard ? const .all(.circular(12)) : null,
@@ -80,7 +84,7 @@ class DynamicPanel extends StatelessWidget {
                   'DYNAMIC_TYPE_COURSES_SEASON',
                 }.contains(item.type)
             ? null
-            : () => PageUtils.pushDynDetail(item),
+            : () => PageUtils.pushDynDetail(item, heroTag: heroTag),
         onLongPress: showMore,
         onSecondaryTap: PlatformUtils.isMobile ? null : showMore,
         child: Column(
@@ -111,7 +115,7 @@ class DynamicPanel extends StatelessWidget {
                     theme: theme,
                     items: items,
                   ),
-              ActionPanel(item: item),
+              ActionPanel(item: item, heroTag: heroTag),
               if (item.modules.moduleFold case final moduleFold?) ...[
                 Divider(
                   height: 1,
@@ -131,7 +135,12 @@ class DynamicPanel extends StatelessWidget {
     if (!isDetail) {
       return Padding(
         padding: const .all(4),
-        child: child,
+        child: VideoCardHero(
+          tag: heroTag!,
+          surfaceColor: theme.colorScheme.surfaceContainer,
+          preserveChildHeroes: true,
+          child: child,
+        ),
       );
     }
     return DecoratedBox(

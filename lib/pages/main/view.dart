@@ -451,7 +451,7 @@ class _MainAppState extends PopScopeState<MainApp>
       PiliAndroidHelper.updateMiuixNavigation(
         destinations: destinations,
         selectedIndex: selectedIndex,
-        visible: visible,
+        visible: visible && _usesNativeMiuixNavigation,
         dark: _colorScheme.brightness.isDark,
         primary: _colorScheme.primary.toARGB32(),
         background: _colorScheme.surfaceContainerLowest.toARGB32(),

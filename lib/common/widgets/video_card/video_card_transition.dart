@@ -13,7 +13,30 @@ const Curve _containerCurve = Interval(0, 0.66, curve: Curves.easeOutCubic);
 const Curve _revealCurve = Interval(0.42, 0.66, curve: Curves.easeInOutCubic);
 const Duration videoPageTransitionDuration = Duration(milliseconds: 560);
 const Duration videoPageReverseTransitionDuration = Duration(milliseconds: 500);
-({Object tag, RenderBox box, Color color})? _pendingVideoTransition;
+({Object tag, RenderBox box, BuildContext context})? _pendingVideoTransition;
+
+/// For transparent cards, use the actual painted ancestor rather than a
+/// hard-coded surface role. Opaque cards pass their own Material color.
+Color transitionBackgroundOf(BuildContext context) {
+  Color? result;
+  context.visitAncestorElements((element) {
+    final widget = element.widget;
+    final Color? color = switch (widget) {
+      Material(:final type, :final color)
+          when type != MaterialType.transparency =>
+        color ?? Theme.of(element).canvasColor,
+      ColoredBox(:final color) => color,
+      DecoratedBox(decoration: BoxDecoration(:final color)) => color,
+      _ => null,
+    };
+    if (color != null && color.a == 1) {
+      result = color;
+      return false;
+    }
+    return true;
+  });
+  return result ?? Theme.of(context).scaffoldBackgroundColor;
+}
 
 Color _transitionSurface(Color card, Color page, double expansion) =>
     Color.lerp(card, page, expansion)!;
@@ -28,7 +51,7 @@ void _prepareVideoTransition(Object tag, BuildContext context) {
     _pendingVideoTransition = (
       tag: tag,
       box: box,
-      color: Theme.of(context).colorScheme.surfaceContainer,
+      context: context,
     );
   }
 }
@@ -64,15 +87,22 @@ class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
 }
 
 class VideoCardHero extends StatelessWidget {
-  const VideoCardHero({super.key, required this.tag, required this.child});
+  const VideoCardHero({
+    super.key,
+    required this.tag,
+    required this.surfaceColor,
+    required this.child,
+    this.preserveChildHeroes = false,
+  });
 
   final Object tag;
+  final Color surfaceColor;
   final Widget child;
+  final bool preserveChildHeroes;
 
   @override
-  Widget build(BuildContext context) => Listener(
-    onPointerDown: (_) => _prepareVideoTransition(tag, context),
-    child: Hero(
+  Widget build(BuildContext context) {
+    final hero = Hero(
       tag: tag,
       curve: Curves.linear,
       reverseCurve: Curves.linear,
@@ -80,12 +110,26 @@ class VideoCardHero extends StatelessWidget {
       createRectTween: (begin, end) =>
           _VideoCardRectTween(begin: begin, end: end),
       flightShuttleBuilder: _buildFlightShuttle,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(_cardRadius)),
-        child: child,
+      child: _CardSurface(
+        color: surfaceColor,
+        flightChild: preserveChildHeroes ? child : null,
+        child: preserveChildHeroes ? const SizedBox.expand() : child,
       ),
-    ),
-  );
+    );
+    return Listener(
+      onPointerDown: (_) => _prepareVideoTransition(tag, context),
+      // Dynamic cards contain independent image-preview Heroes. Keep the card
+      // flight anchor as their sibling, never an enclosing Hero.
+      child: preserveChildHeroes
+          ? Stack(
+              children: [
+                child,
+                Positioned.fill(child: IgnorePointer(child: hero)),
+              ],
+            )
+          : hero,
+    );
+  }
 }
 
 class VideoPageHeroTarget extends StatefulWidget {
@@ -109,6 +153,7 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
   RenderBox? _sourceBox;
   Rect? _sourceRect;
   Color? _sourceColor;
+  BuildContext? _sourceContext;
   bool _samplingPaused = false;
 
   @override
@@ -116,7 +161,8 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
     super.initState();
     if (hasPendingVideoCardTransition(widget.tag)) {
       _sourceBox = _pendingVideoTransition!.box;
-      _sourceColor = _pendingVideoTransition!.color;
+      _sourceContext = _pendingVideoTransition!.context;
+      _sourceColor = (_sourceContext!.widget as VideoCardHero).surfaceColor;
       _sourceRect = _sourceBox!.localToGlobal(Offset.zero) & _sourceBox!.size;
       _pendingVideoTransition = null;
     }
@@ -135,6 +181,9 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
   }
 
   void _handleAnimationStatus(AnimationStatus status) {
+    if (status == AnimationStatus.reverse && _sourceContext?.mounted == true) {
+      _sourceColor = (_sourceContext!.widget as VideoCardHero).surfaceColor;
+    }
     final box = _sourceBox;
     if (status == AnimationStatus.reverse &&
         box != null &&
@@ -294,6 +343,23 @@ class _VideoPageSurface extends StatelessWidget {
   Widget build(BuildContext context) => const SizedBox.expand();
 }
 
+class _CardSurface extends StatelessWidget {
+  const _CardSurface({
+    required this.color,
+    required this.child,
+    this.flightChild,
+  });
+  final Color color;
+  final Widget child;
+  final Widget? flightChild;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: const BorderRadius.all(Radius.circular(_cardRadius)),
+    child: child,
+  );
+}
+
 Widget _buildFlightShuttle(
   BuildContext flightContext,
   Animation<double> animation,
@@ -307,10 +373,13 @@ Widget _buildFlightShuttle(
   final pageSurface = (toHeroContext.widget as Hero).child as _VideoPageSurface;
   final renderBox = fromHeroContext.findRenderObject() as RenderBox?;
   final cardSize = renderBox?.size ?? const Size(1, 1);
-  final cardSurface = Theme.of(fromHeroContext).colorScheme.surfaceContainer;
+  final cardSurface = (cardHero.child as _CardSurface).color;
   final card = InheritedTheme.captureAll(
     fromHeroContext,
-    Material(type: MaterialType.transparency, child: cardHero.child),
+    Material(
+      type: MaterialType.transparency,
+      child: (cardHero.child as _CardSurface).flightChild ?? cardHero.child,
+    ),
   );
   return AnimatedBuilder(
     animation: animation,

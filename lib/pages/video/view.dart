@@ -1288,7 +1288,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         : child;
     return VideoPageHeroTarget(
       tag: heroTag,
-      surfaceColor: colorScheme.surface,
+      surfaceColor: theme.canvasColor,
       child: page,
     );
   }
