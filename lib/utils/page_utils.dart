@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:PiliPlus/common/widgets/fractionally_sized_box.dart';
 import 'package:PiliPlus/common/widgets/image_viewer/gallery_viewer.dart';
 import 'package:PiliPlus/common/widgets/image_viewer/hero_dialog_route.dart';
+import 'package:PiliPlus/common/widgets/video_card/video_card_transition.dart';
 import 'package:PiliPlus/grpc/im.dart';
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
@@ -18,6 +19,7 @@ import 'package:PiliPlus/pages/common/publish/publish_route.dart';
 import 'package:PiliPlus/pages/contact/view.dart';
 import 'package:PiliPlus/pages/fav_panel/view.dart';
 import 'package:PiliPlus/pages/share/view.dart';
+import 'package:PiliPlus/pages/video/view.dart';
 import 'package:PiliPlus/utils/android/android_helper.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/extension/context_ext.dart';
@@ -551,7 +553,18 @@ abstract final class PageUtils {
       'heroTag': heroTag ?? Utils.makeHeroTag(cid),
       ...?extraArguments,
     };
-    return PageUtils.toDupNamed('/videoV', arguments: arguments, off: off);
+    if (!hasPendingVideoCardTransition(arguments['heroTag']!)) {
+      return PageUtils.toDupNamed('/videoV', arguments: arguments, off: off);
+    }
+    final navigator = Get.key.currentState;
+    if (navigator == null) return null;
+    final route = VideoPageTransitionRoute<void>(
+      settings: RouteSettings(name: '/videoV', arguments: arguments),
+      builder: (_) => const VideoDetailPageV(),
+    );
+    return off
+        ? navigator.pushReplacement<void, void>(route)
+        : navigator.push<void>(route);
   }
 
   static final _pgcRegex = RegExp(r'(ep|ss)(\d+)');

@@ -6,13 +6,23 @@ void main() {
   testWidgets('video card expands to the page and returns without errors', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: _SourcePage()));
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => RepaintBoundary(
+          key: videoTransitionCaptureBoundaryKey,
+          child: child!,
+        ),
+        home: const _SourcePage(),
+      ),
+    );
 
     await tester.tap(find.byKey(const ValueKey('video-card')));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(find.byType(SnapshotWidget), findsOneWidget);
+    expect(find.byType(ImageFiltered), findsOneWidget);
+    expect(find.byType(BackdropFilter), findsNothing);
     expect(
       tester
           .widget<FadeTransition>(
@@ -20,15 +30,7 @@ void main() {
           )
           .opacity
           .value,
-      inExclusiveRange(0, 1),
-    );
-    expect(
-      tester
-          .widget<ColoredBox>(
-            find.byKey(const ValueKey('video-transition-page-surface')),
-          )
-          .color,
-      Colors.transparent,
+      1,
     );
     expect(
       tester
@@ -42,8 +44,51 @@ void main() {
     expect(find.byType(FittedBox), findsNothing);
     expect(tester.takeException(), isNull);
 
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(
+              const ValueKey('video-transition-page-surface-opacity'),
+            ),
+          )
+          .opacity
+          .value,
+      0,
+    );
+
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.pump(const Duration(milliseconds: 40));
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('video-transition-backdrop')),
+          )
+          .opacity
+          .value,
+      inExclusiveRange(0, 1),
+    );
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(
+              const ValueKey('video-transition-page-surface-opacity'),
+            ),
+          )
+          .opacity
+          .value,
+      inExclusiveRange(0, 1),
+    );
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('video-transition-page')),
+          )
+          .opacity
+          .value,
+      0,
+    );
+
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.pump(const Duration(milliseconds: 50));
     expect(
       tester
           .widget<FadeTransition>(
@@ -55,11 +100,14 @@ void main() {
     );
     expect(
       tester
-          .widget<ColoredBox>(
-            find.byKey(const ValueKey('video-transition-page-surface')),
+          .widget<FadeTransition>(
+            find.byKey(
+              const ValueKey('video-transition-page-surface-opacity'),
+            ),
           )
-          .color,
-      isNot(Colors.transparent),
+          .opacity
+          .value,
+      1,
     );
     expect(
       tester
@@ -75,9 +123,9 @@ void main() {
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.text('播放页'))).pop();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 70));
+    await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(find.byType(ImageFiltered), findsOneWidget);
     expect(
       tester
           .widget<FadeTransition>(
@@ -89,7 +137,7 @@ void main() {
     );
     expect(tester.takeException(), isNull);
 
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(const Duration(milliseconds: 120));
     expect(
       tester
           .widget<FadeTransition>(
@@ -118,10 +166,8 @@ class _SourcePage extends StatelessWidget {
           child: InkWell(
             key: const ValueKey('video-card'),
             onTap: () => Navigator.of(context).push(
-              PageRouteBuilder<void>(
-                transitionDuration: const Duration(milliseconds: 500),
-                reverseTransitionDuration: const Duration(milliseconds: 500),
-                pageBuilder: (_, _, _) => const _TargetPage(),
+              VideoPageTransitionRoute<void>(
+                builder: (_) => const _TargetPage(),
               ),
             ),
             child: const SizedBox(
