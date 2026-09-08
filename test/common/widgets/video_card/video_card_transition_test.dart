@@ -12,7 +12,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
 
-    expect(find.byType(BackdropFilter), findsWidgets);
+    expect(find.byType(BackdropFilter), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.pumpAndSettle();
@@ -20,7 +20,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
 
-    expect(find.byType(BackdropFilter), findsWidgets);
+    expect(find.byType(BackdropFilter), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.pumpAndSettle();

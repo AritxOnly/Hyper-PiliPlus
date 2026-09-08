@@ -123,55 +123,53 @@ class _VideoCardVState extends State<VideoCardV> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Padding(
-          padding: const .all(4),
-          child: VideoCardHero(
-            tag: _heroTag,
-            child: Card(
-              margin: .zero,
-              child: InkWell(
-                onTap: onPushDetail,
-                onLongPress: onLongPress,
-                onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
-                borderRadius: const .all(.circular(12)),
-                child: Column(
-                  crossAxisAlignment: .start,
-                  children: [
-                    AspectRatio(
-                      aspectRatio: Style.aspectRatio,
-                      child: LayoutBuilder(
-                        builder: (context, boxConstraints) {
-                          double maxWidth = boxConstraints.maxWidth;
-                          double maxHeight = boxConstraints.maxHeight;
-                          return Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              NetworkImgLayer(
-                                src: videoItem.cover,
-                                width: maxWidth,
-                                height: maxHeight,
-                                borderRadius: const .vertical(
-                                  top: .circular(12),
+        VideoCardHero(
+          tag: _heroTag,
+          child: Card(
+            margin: .zero,
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            child: InkWell(
+              onTap: onPushDetail,
+              onLongPress: onLongPress,
+              onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
+              borderRadius: const .all(.circular(12)),
+              child: Column(
+                crossAxisAlignment: .start,
+                children: [
+                  AspectRatio(
+                    aspectRatio: Style.aspectRatio,
+                    child: LayoutBuilder(
+                      builder: (context, boxConstraints) {
+                        double maxWidth = boxConstraints.maxWidth;
+                        double maxHeight = boxConstraints.maxHeight;
+                        return Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            NetworkImgLayer(
+                              src: videoItem.cover,
+                              width: maxWidth,
+                              height: maxHeight,
+                              borderRadius: const .vertical(
+                                top: .circular(12),
+                              ),
+                            ),
+                            if (videoItem.duration > 0)
+                              PBadge(
+                                bottom: 6,
+                                right: 7,
+                                size: .small,
+                                type: .gray,
+                                text: DurationUtils.formatDuration(
+                                  videoItem.duration,
                                 ),
                               ),
-                              if (videoItem.duration > 0)
-                                PBadge(
-                                  bottom: 6,
-                                  right: 7,
-                                  size: .small,
-                                  type: .gray,
-                                  text: DurationUtils.formatDuration(
-                                    videoItem.duration,
-                                  ),
-                                ),
-                            ],
-                          );
-                        },
-                      ),
+                          ],
+                        );
+                      },
                     ),
-                    content(context),
-                  ],
-                ),
+                  ),
+                  content(context),
+                ],
               ),
             ),
           ),

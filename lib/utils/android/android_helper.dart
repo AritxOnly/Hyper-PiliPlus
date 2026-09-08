@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:PiliPlus/utils/android/bindings.g.dart';
 import 'package:PiliPlus/utils/utils.dart';
-import 'package:flutter/services.dart' show MethodCall, MethodChannel;
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:jni/jni.dart';
 
 abstract final class PiliAndroidHelper {
@@ -51,6 +51,12 @@ abstract final class PiliAndroidHelper {
 
   static Future<void> hideMiuixNavigation() =>
       _miuixNavigationChannel.invokeMethod<void>('hide');
+
+  static Future<void> setMiuixBackdropSamplingPaused(bool paused) =>
+      _miuixNavigationChannel.invokeMethod<void>(
+        'setBackdropSamplingPaused',
+        paused,
+      );
 
   @pragma('vm:prefer-inline')
   static void back() => AndroidHelper.back();

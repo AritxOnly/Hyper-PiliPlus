@@ -1,6 +1,10 @@
+import 'dart:async' show unawaited;
 import 'dart:math' show pi, sin;
 import 'dart:ui' show ImageFilter, lerpDouble;
 
+import 'package:PiliPlus/utils/android/android_helper.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:material_ui/material_ui.dart';
 
 const double _cardRadius = 12;
@@ -34,7 +38,7 @@ class VideoCardHero extends StatelessWidget {
 
 /// Places the matching Hero just outside the viewport, so its growing corners
 /// finish beyond the screen while the rounded surface still covers every pixel.
-class VideoPageHeroTarget extends StatelessWidget {
+class VideoPageHeroTarget extends StatefulWidget {
   const VideoPageHeroTarget({
     super.key,
     required this.tag,
@@ -47,21 +51,65 @@ class VideoPageHeroTarget extends StatelessWidget {
   final Widget child;
 
   @override
+  State<VideoPageHeroTarget> createState() => _VideoPageHeroTargetState();
+}
+
+class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
+  Animation<double>? _routeAnimation;
+  bool _samplingPaused = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animation = ModalRoute.of(context)?.animation;
+    if (identical(animation, _routeAnimation)) return;
+    _routeAnimation?.removeStatusListener(_handleAnimationStatus);
+    _routeAnimation = animation;
+    animation?.addStatusListener(_handleAnimationStatus);
+    if (animation != null) {
+      _handleAnimationStatus(animation.status);
+    }
+  }
+
+  void _handleAnimationStatus(AnimationStatus status) {
+    final shouldPause =
+        status == AnimationStatus.forward || status == AnimationStatus.reverse;
+    if (_samplingPaused == shouldPause) return;
+    _samplingPaused = shouldPause;
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      unawaited(
+        PiliAndroidHelper.setMiuixBackdropSamplingPaused(shouldPause),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _routeAnimation?.removeStatusListener(_handleAnimationStatus);
+    if (_samplingPaused &&
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.android) {
+      unawaited(PiliAndroidHelper.setMiuixBackdropSamplingPaused(false));
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final routeAnimation = ModalRoute.of(context)?.animation;
+    final routeAnimation = _routeAnimation;
     return Stack(
       fit: .expand,
       clipBehavior: .none,
       children: [
         if (routeAnimation == null)
-          child
+          widget.child
         else
           FadeTransition(
             opacity: CurvedAnimation(
               parent: routeAnimation,
               curve: const Interval(0.18, 1, curve: Curves.easeOutCubic),
             ),
-            child: child,
+            child: widget.child,
           ),
         if (routeAnimation != null)
           Positioned.fill(
@@ -76,8 +124,8 @@ class VideoPageHeroTarget extends StatelessWidget {
                   return ClipRect(
                     child: BackdropFilter(
                       filter: ImageFilter.blur(
-                        sigmaX: 16 * pulse,
-                        sigmaY: 16 * pulse,
+                        sigmaX: 12 * pulse,
+                        sigmaY: 12 * pulse,
                       ),
                       child: ColoredBox(
                         color: Colors.black.withValues(alpha: 0.05 * pulse),
@@ -95,12 +143,12 @@ class VideoPageHeroTarget extends StatelessWidget {
           bottom: -_pageRadius,
           child: IgnorePointer(
             child: Hero(
-              tag: tag,
+              tag: widget.tag,
               transitionOnUserGestures: true,
               createRectTween: (begin, end) =>
                   RectTween(begin: begin, end: end),
               flightShuttleBuilder: _buildFlightShuttle,
-              child: _VideoPageSurface(color: surfaceColor),
+              child: _VideoPageSurface(color: widget.surfaceColor),
             ),
           ),
         ),
@@ -147,7 +195,6 @@ Widget _buildFlightShuttle(
     builder: (context, child) {
       final progress = Curves.easeInOutCubic.transform(animation.value);
       final radius = lerpDouble(_cardRadius, _pageRadius, progress)!;
-      final blurPulse = sin(pi * progress);
       final cardOpacity =
           1 -
           const Interval(
@@ -161,18 +208,12 @@ Widget _buildFlightShuttle(
         child: Stack(
           fit: .expand,
           children: [
-            BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: 16 * blurPulse,
-                sigmaY: 16 * blurPulse,
-              ),
-              child: ColoredBox(
-                color: Color.lerp(
-                  Colors.transparent,
-                  pageSurface.color,
-                  progress,
-                )!,
-              ),
+            ColoredBox(
+              color: Color.lerp(
+                Colors.transparent,
+                pageSurface.color,
+                progress,
+              )!,
             ),
             if (cardOpacity > 0)
               Opacity(

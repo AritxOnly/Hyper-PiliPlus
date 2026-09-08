@@ -83,7 +83,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
             key: const PageStorageKey(_VideoReplyPanelState),
             slivers: [
               SliverFloatingHeaderWidget(
-                backgroundColor: colorScheme.surface,
+                backgroundColor: colorScheme.surfaceContainerLowest,
                 child: Padding(
                   padding: const .fromLTRB(12, 2.5, 6, 2.5),
                   child: Obx(() {

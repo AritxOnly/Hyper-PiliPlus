@@ -60,9 +60,13 @@ class DynamicPanel extends StatelessWidget {
 
     void showMore() => _imageSaveDialog(context, authorWidget.morePanel);
 
+    final isCard = !isSave && !isDetail;
     final child = Material(
       color: theme.colorScheme.surfaceContainer,
+      borderRadius: isCard ? const .all(.circular(12)) : null,
+      clipBehavior: isCard ? Clip.antiAlias : Clip.none,
       child: InkWell(
+        borderRadius: isCard ? const .all(.circular(12)) : null,
         onTap:
             isDetail &&
                 !const {
@@ -123,6 +127,12 @@ class DynamicPanel extends StatelessWidget {
     );
     if (isSave || (isDetail && !isDetailPortraitW)) {
       return child;
+    }
+    if (!isDetail) {
+      return Padding(
+        padding: const .all(4),
+        child: child,
+      );
     }
     return DecoratedBox(
       decoration: BoxDecoration(

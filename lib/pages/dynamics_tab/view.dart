@@ -57,7 +57,7 @@ class _DynamicsTabPageState extends State<DynamicsTabPage>
         controller: controller.scrollController,
         slivers: [
           SliverPadding(
-            padding: const EdgeInsets.only(bottom: 100),
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 100),
             sliver: buildPage(
               Obx(() => _buildBody(controller.loadingState.value)),
             ),

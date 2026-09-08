@@ -81,6 +81,7 @@ internal class MiuixNavigationOverlay(
     private var uiState by mutableStateOf(NavigationUiState())
     private var backdropSnapshot by mutableStateOf<FlutterBackdropSnapshot?>(null)
     private var backdropDebugState by mutableStateOf(FlutterBackdropDebugState())
+    private var backdropSamplingPaused = false
     private var composeView: ComposeView? = null
     private var viewTreeOwner: OverlayViewTreeOwner? = null
     private val flutterRenderer = flutterEngine.renderer
@@ -109,7 +110,12 @@ internal class MiuixNavigationOverlay(
                 "update" -> {
                     uiState = NavigationUiState.from(call.arguments as? Map<*, *>)
                     backdropSampler.setDebugEnabled(uiState.backdropDebug)
-                    backdropSampler.setEnabled(uiState.visible && uiState.backdropSampling)
+                    updateBackdropSampling()
+                    result.success(null)
+                }
+                "setBackdropSamplingPaused" -> {
+                    backdropSamplingPaused = call.arguments as? Boolean ?: false
+                    updateBackdropSampling()
                     result.success(null)
                 }
                 "hide" -> {
@@ -172,6 +178,12 @@ internal class MiuixNavigationOverlay(
 
     fun onTouchEvent(event: MotionEvent) {
         backdropSampler.onTouchEvent(event)
+    }
+
+    private fun updateBackdropSampling() {
+        backdropSampler.setEnabled(
+            uiState.visible && uiState.backdropSampling && !backdropSamplingPaused,
+        )
     }
 
     private fun selectDestination(index: Int) {

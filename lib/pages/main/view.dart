@@ -454,7 +454,7 @@ class _MainAppState extends PopScopeState<MainApp>
         visible: visible,
         dark: _colorScheme.brightness.isDark,
         primary: _colorScheme.primary.toARGB32(),
-        background: _colorScheme.background.toARGB32(),
+        background: _colorScheme.surfaceContainerLowest.toARGB32(),
         surface: _colorScheme.surface.toARGB32(),
         surfaceContainer: _colorScheme.surfaceContainer.toARGB32(),
         onSurface: _colorScheme.onSurface.toARGB32(),
@@ -592,6 +592,7 @@ class _MainAppState extends PopScopeState<MainApp>
     }
 
     child = Material(
+      color: _colorScheme.surface,
       child: Stack(
         children: [
           MainLayout(
