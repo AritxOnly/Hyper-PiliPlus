@@ -5,6 +5,7 @@ import 'package:PiliPlus/common/widgets/color_palette.dart';
 import 'package:PiliPlus/common/widgets/custom_toast.dart';
 import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/miuix_switch.dart';
 import 'package:PiliPlus/common/widgets/scale_app.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart'
     show kSpringDescription;
@@ -118,7 +119,7 @@ List<SettingsModel> get styleSettings => [
     needReboot: true,
   ),
   const SwitchModel(
-    title: 'Deadliner 悬浮底栏（MIUIX）',
+    title: '柔光玻璃底栏',
     leading: Icon(MdiIcons.soundbar),
     setKey: SettingBoxKey.floatingNavBar,
     defaultVal: false,
@@ -831,14 +832,10 @@ NormalModel _useSSDModel() {
     leading: const Icon(Icons.web_asset),
     onTap: onChanged,
     getTrailing: (theme) => Builder(
-      builder: (context) => Transform.scale(
-        scale: 0.8,
-        alignment: .centerRight,
-        child: Switch(
-          value: file.existsSync(),
-          onChanged: (_) =>
-              onChanged(context, (context as Element).markNeedsBuild),
-        ),
+      builder: (context) => PiliMiuixSwitch(
+        value: file.existsSync(),
+        onChanged: (_) =>
+            onChanged(context, (context as Element).markNeedsBuild),
       ),
     ),
   );

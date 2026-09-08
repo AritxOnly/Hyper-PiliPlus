@@ -1,6 +1,7 @@
 import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/keep_alive_wrapper.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
+import 'package:PiliPlus/common/widgets/miuix_switch.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scroll_behavior.dart'
     show NoOverscrollIndicator;
@@ -196,12 +197,9 @@ class _LiveDmBlockPageState extends State<LiveDmBlockPage> {
             spacing: 10,
             children: [
               Text('屏蔽${isEnable ? '已' : '未'}开启'),
-              Transform.scale(
-                scale: .8,
-                child: Switch(
-                  value: isEnable,
-                  onChanged: _controller.setEnable,
-                ),
+              PiliMiuixSwitch(
+                value: isEnable,
+                onChanged: _controller.setEnable,
               ),
             ],
           );

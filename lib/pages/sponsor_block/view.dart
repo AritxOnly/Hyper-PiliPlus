@@ -1,4 +1,5 @@
 import 'package:PiliPlus/common/widgets/pair.dart';
+import 'package:PiliPlus/common/widgets/miuix_switch.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/init.dart';
@@ -226,13 +227,9 @@ class _SponsorBlockPageState extends State<SponsorBlockPage> {
           '显示跳过Toast',
           style: titleStyle,
         ),
-        trailing: Transform.scale(
-          alignment: Alignment.centerRight,
-          scale: 0.8,
-          child: Switch(
-            value: _blockToast,
-            onChanged: (val) => update(),
-          ),
+        trailing: PiliMiuixSwitch(
+          value: _blockToast,
+          onChanged: (val) => update(),
         ),
       );
     },
@@ -261,13 +258,9 @@ class _SponsorBlockPageState extends State<SponsorBlockPage> {
           '此功能追踪您跳过了哪些片段，让用户知道他们提交的片段帮助了多少人。同时点赞会作为依据，确保垃圾信息不会污染数据库。在您每次跳过片段时，我们都会向服务器发送一条消息。希望大家开启此项设置，以便得到更准确的统计数据。:)',
           style: subTitleStyle,
         ),
-        trailing: Transform.scale(
-          alignment: Alignment.centerRight,
-          scale: 0.8,
-          child: Switch(
-            value: _blockTrack,
-            onChanged: (val) => update(),
-          ),
+        trailing: PiliMiuixSwitch(
+          value: _blockTrack,
+          onChanged: (val) => update(),
         ),
       );
     },

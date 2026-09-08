@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:PiliPlus/common/widgets/miuix_switch.dart';
 import 'package:PiliPlus/models/common/video/audio_quality.dart';
 import 'package:PiliPlus/models/common/video/cdn_type.dart';
 import 'package:PiliPlus/models/common/video/live_quality.dart';
@@ -41,18 +42,9 @@ List<SettingsModel> get videoSettings => [
     title: 'B站定向流量支持',
     subtitle: '若套餐含B站定向流量，则会自动使用。可查阅运营商的流量记录确认。',
     leading: const Icon(Icons.perm_data_setting_outlined),
-    getTrailing: (theme) => IgnorePointer(
-      child: Transform.scale(
-        scale: 0.8,
-        alignment: Alignment.centerRight,
-        child: Switch(
-          value: true,
-          onChanged: (_) {},
-          thumbIcon: WidgetStateProperty.all(
-            const Icon(Icons.lock_outline_rounded),
-          ),
-        ),
-      ),
+    getTrailing: (theme) => const PiliMiuixSwitch(
+      value: true,
+      onChanged: null,
     ),
   ),
   NormalModel(

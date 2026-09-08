@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
+import 'package:PiliPlus/common/widgets/miuix_switch.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models_new/space_setting/privacy.dart';
@@ -119,13 +120,9 @@ class _SpaceSettingPageState extends State<SpaceSettingPage> {
             item.name,
             style: const TextStyle(fontSize: 14),
           ),
-          trailing: Transform.scale(
-            alignment: Alignment.centerRight,
-            scale: 0.8,
-            child: Switch(
-              value: item.boolVal,
-              onChanged: onChanged,
-            ),
+          trailing: PiliMiuixSwitch(
+            value: item.boolVal,
+            onChanged: onChanged,
           ),
         );
       },

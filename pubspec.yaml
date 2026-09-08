@@ -104,6 +104,7 @@ dependencies:
       ref: master
   flutter_svg: ^2.0.14
   flutter_volume_controller: ^2.0.0
+  flutter_miuix: ^1.0.0
   font_awesome_flutter:
     git:
       url: https://github.com/bggRGjQaUbCoE/font_awesome_flutter.git

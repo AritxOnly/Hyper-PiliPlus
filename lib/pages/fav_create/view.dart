@@ -3,6 +3,7 @@ import 'dart:io' show File;
 import 'package:PiliPlus/common/widgets/dialog/simple_dialog_option.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
+import 'package:PiliPlus/common/widgets/miuix_switch.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/view_insets_safe_area.dart';
 import 'package:PiliPlus/http/fav.dart';
@@ -375,13 +376,9 @@ class _CreateFavPageState extends State<CreateFavPage> {
                   '公开',
                   style: leadingStyle,
                 ),
-                trailing: Transform.scale(
-                  alignment: Alignment.centerRight,
-                  scale: 0.8,
-                  child: Switch(
-                    value: _isPublic,
-                    onChanged: (value) => onTap(),
-                  ),
+                trailing: PiliMiuixSwitch(
+                  value: _isPublic,
+                  onChanged: (value) => onTap(),
                 ),
               );
             },

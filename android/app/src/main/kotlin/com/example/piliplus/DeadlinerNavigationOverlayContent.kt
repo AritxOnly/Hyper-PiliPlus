@@ -50,7 +50,7 @@ import com.aritxonly.deadliner.ui.navigation.MiuixFloatingTabLayout
 import com.aritxonly.deadliner.ui.theme.AdvancedMaterialSpec
 import com.aritxonly.deadliner.ui.theme.LocalAdvancedMaterialSpec
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Contacts
+import top.yukonga.miuix.kmp.icon.extended.ContactsCircle
 import top.yukonga.miuix.kmp.icon.extended.Home
 import top.yukonga.miuix.kmp.icon.extended.Messages
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -116,13 +116,14 @@ internal fun DeadlinerNavigationOverlayContent(
         val icon = when (destination.key) {
             "home" -> MiuixIcons.Home
             "dynamics" -> MiuixIcons.Messages
-            else -> MiuixIcons.Contacts
+            else -> MiuixIcons.ContactsCircle
         }
         MiuixFloatingTabItem(
             key = destination.key,
             label = destination.label,
             selectedIcon = rememberVectorPainter(icon),
             unselectedIcon = rememberVectorPainter(icon),
+            iconScale = if (destination.key == "home") 0.95f else 1f,
         )
     }
     val backdrop = rememberLayerBackdrop()

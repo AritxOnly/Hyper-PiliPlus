@@ -1,4 +1,5 @@
 import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
+import 'package:PiliPlus/common/widgets/miuix_switch.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models_new/msg/im_user_infos/datum.dart';
@@ -95,13 +96,9 @@ class _WhisperLinkSettingPageState extends State<WhisperLinkSettingPage> {
       dense: true,
       onTap: () => _controller.setBlock(isBlocked),
       title: const Text('加入黑名单', style: TextStyle(fontSize: 14)),
-      trailing: Transform.scale(
-        alignment: Alignment.centerRight,
-        scale: 0.8,
-        child: Switch(
-          value: isBlocked,
-          onChanged: (value) => _controller.setBlock(isBlocked),
-        ),
+      trailing: PiliMiuixSwitch(
+        value: isBlocked,
+        onChanged: (value) => _controller.setBlock(isBlocked),
       ),
     );
   }
@@ -196,14 +193,10 @@ class _WhisperLinkSettingPageState extends State<WhisperLinkSettingPage> {
                     '若关闭此开关，你将不再收到该账号的图文消息与稿件推送，但通知类消息不受影响',
                     style: subTitleS,
                   ),
-                  trailing: Transform.scale(
-                    alignment: Alignment.centerRight,
-                    scale: 0.8,
-                    child: Switch(
-                      value: response.pushSetting == 0,
-                      onChanged: (value) =>
-                          _controller.setPush(response.pushSetting == 0),
-                    ),
+                  trailing: PiliMiuixSwitch(
+                    value: response.pushSetting == 0,
+                    onChanged: (value) =>
+                        _controller.setPush(response.pushSetting == 0),
                   ),
                 ),
               divider2,
@@ -212,13 +205,9 @@ class _WhisperLinkSettingPageState extends State<WhisperLinkSettingPage> {
                   dense: true,
                   onTap: _controller.setPin,
                   title: const Text('置顶聊天', style: TextStyle(fontSize: 14)),
-                  trailing: Transform.scale(
-                    alignment: Alignment.centerRight,
-                    scale: 0.8,
-                    child: Switch(
-                      value: _controller.isPinned.value,
-                      onChanged: (value) => _controller.setPin(),
-                    ),
+                  trailing: PiliMiuixSwitch(
+                    value: _controller.isPinned.value,
+                    onChanged: (value) => _controller.setPin(),
                   ),
                 ),
               ),
@@ -242,14 +231,10 @@ class _WhisperLinkSettingPageState extends State<WhisperLinkSettingPage> {
                 dense: true,
                 onTap: () => _controller.setMute(response.first.setting == 1),
                 title: const Text('消息免打扰', style: TextStyle(fontSize: 14)),
-                trailing: Transform.scale(
-                  alignment: Alignment.centerRight,
-                  scale: 0.8,
-                  child: Switch(
-                    value: response.first.setting == 1,
-                    onChanged: (value) =>
-                        _controller.setMute(response.first.setting == 1),
-                  ),
+                trailing: PiliMiuixSwitch(
+                  value: response.first.setting == 1,
+                  onChanged: (value) =>
+                      _controller.setMute(response.first.setting == 1),
                 ),
               )
             : const SizedBox.shrink(),
