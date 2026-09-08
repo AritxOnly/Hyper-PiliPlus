@@ -10,9 +10,57 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('video-card')));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('video-transition-backdrop')),
+          )
+          .opacity
+          .value,
+      inExclusiveRange(0, 1),
+    );
+    expect(
+      tester
+          .widget<ColoredBox>(
+            find.byKey(const ValueKey('video-transition-page-surface')),
+          )
+          .color,
+      Colors.transparent,
+    );
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('video-transition-page')),
+          )
+          .opacity
+          .value,
+      0,
+    );
+    expect(find.byType(FittedBox), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 40));
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('video-transition-backdrop')),
+          )
+          .opacity
+          .value,
+      0,
+    );
+    expect(
+      tester
+          .widget<ColoredBox>(
+            find.byKey(const ValueKey('video-transition-page-surface')),
+          )
+          .color,
+      isNot(Colors.transparent),
+    );
     expect(
       tester
           .widget<FadeTransition>(
@@ -27,7 +75,7 @@ void main() {
     await tester.pumpAndSettle();
     Navigator.of(tester.element(find.text('播放页'))).pop();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(const Duration(milliseconds: 70));
 
     expect(find.byType(BackdropFilter), findsOneWidget);
     expect(
@@ -40,6 +88,18 @@ void main() {
       inExclusiveRange(0, 1),
     );
     expect(tester.takeException(), isNull);
+
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('video-transition-page')),
+          )
+          .opacity
+          .value,
+      0,
+    );
+    expect(find.byType(FittedBox), findsNothing);
 
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('video-card')), findsOneWidget);
@@ -58,7 +118,11 @@ class _SourcePage extends StatelessWidget {
           child: InkWell(
             key: const ValueKey('video-card'),
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const _TargetPage()),
+              PageRouteBuilder<void>(
+                transitionDuration: const Duration(milliseconds: 500),
+                reverseTransitionDuration: const Duration(milliseconds: 500),
+                pageBuilder: (_, _, _) => const _TargetPage(),
+              ),
             ),
             child: const SizedBox(
               width: 180,
