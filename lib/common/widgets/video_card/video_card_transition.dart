@@ -57,10 +57,23 @@ void _prepareVideoTransition(Object tag, BuildContext context) {
 }
 
 class _VideoCardRectTween extends RectTween {
-  _VideoCardRectTween({required super.begin, required super.end});
+  _VideoCardRectTween({
+    required super.begin,
+    required super.end,
+    this.returning = false,
+  });
+  final bool returning;
 
   @override
-  Rect? lerp(double t) => Rect.lerp(begin, end, _containerCurve.transform(t));
+  Rect? lerp(double t) => returning
+      // The page anchor is enlarged for entry corners; the mounted page
+      // contracts from the actual viewport on return.
+      ? Rect.lerp(
+          begin?.deflate(_pageRadius),
+          end,
+          Curves.easeInOutCubic.transform(t),
+        )
+      : Rect.lerp(begin, end, _containerCurve.transform(t));
 }
 
 /// Retain GetX's playback/controller lifecycle, replacing only the visuals.
@@ -108,7 +121,7 @@ class VideoCardHero extends StatelessWidget {
       reverseCurve: Curves.linear,
       transitionOnUserGestures: true,
       createRectTween: (begin, end) =>
-          _VideoCardRectTween(begin: begin, end: end),
+          _VideoCardRectTween(begin: begin, end: end, returning: true),
       flightShuttleBuilder: _buildFlightShuttle,
       child: _CardSurface(
         color: surfaceColor,
@@ -367,15 +380,16 @@ Widget _buildFlightShuttle(
   BuildContext fromHeroContext,
   BuildContext toHeroContext,
 ) {
-  // Shrink the mounted page on return; never duplicate its playback state.
-  if (direction == HeroFlightDirection.pop) return const SizedBox.expand();
-  final cardHero = fromHeroContext.widget as Hero;
-  final pageSurface = (toHeroContext.widget as Hero).child as _VideoPageSurface;
-  final renderBox = fromHeroContext.findRenderObject() as RenderBox?;
+  final returning = direction == HeroFlightDirection.pop;
+  final cardContext = returning ? toHeroContext : fromHeroContext;
+  final pageContext = returning ? fromHeroContext : toHeroContext;
+  final cardHero = cardContext.widget as Hero;
+  final pageSurface = (pageContext.widget as Hero).child as _VideoPageSurface;
+  final renderBox = cardContext.findRenderObject() as RenderBox?;
   final cardSize = renderBox?.size ?? const Size(1, 1);
   final cardSurface = (cardHero.child as _CardSurface).color;
   final card = InheritedTheme.captureAll(
-    fromHeroContext,
+    cardContext,
     Material(
       type: MaterialType.transparency,
       child: (cardHero.child as _CardSurface).flightChild ?? cardHero.child,
@@ -385,6 +399,28 @@ Widget _buildFlightShuttle(
     animation: animation,
     child: card,
     builder: (context, child) {
+      if (returning) {
+        final contraction = Curves.easeInOutCubic.transform(
+          1 - animation.value,
+        );
+        // Complement the mounted page's fade. Card content is already fully
+        // visible before Hero hands it back to the source widget.
+        return ClipRRect(
+          key: const ValueKey('video-transition-return-card'),
+          borderRadius: BorderRadius.circular(_cardRadius * contraction),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Opacity(
+              key: const ValueKey('video-transition-return-card-opacity'),
+              opacity: Curves.easeOutCubic.transform(contraction),
+              child: SizedBox.fromSize(
+                size: cardSize,
+                child: RepaintBoundary(child: child),
+              ),
+            ),
+          ),
+        );
+      }
       final progress = _containerCurve.transform(animation.value);
       final radius = ui.lerpDouble(_cardRadius, _pageRadius, progress)!;
       final cardOpacity =
