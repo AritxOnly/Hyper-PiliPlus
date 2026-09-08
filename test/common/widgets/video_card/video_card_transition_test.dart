@@ -4,122 +4,79 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
-double _opacity(WidgetTester tester, String key) =>
-    tester.widget<FadeTransition>(find.byKey(ValueKey(key))).opacity.value;
-
-// Compare rendered geometry and visible layers at identical route progress.
-List<double> _frame(WidgetTester tester) {
-  final flight = find.byKey(const ValueKey('video-transition-flight'));
-  final rect = tester.getRect(flight);
-  final radius = tester.widget<ClipRRect>(flight).borderRadius as BorderRadius;
-  return [
-    rect.left,
-    rect.top,
-    rect.width,
-    rect.height,
-    radius.topLeft.x,
-    _opacity(tester, 'video-transition-page'),
-    _opacity(tester, 'video-transition-backdrop'),
-    _opacity(tester, 'video-transition-page-surface-opacity'),
-    tester
-        .widget<ColoredBox>(
-          find
-              .descendant(
-                of: flight,
-                matching: find.byType(ColoredBox),
-              )
-              .first,
-        )
-        .color
-        .a,
-  ];
-}
+double _pageOpacity(WidgetTester tester) => tester
+    .widget<FadeTransition>(find.byKey(const ValueKey('video-transition-page')))
+    .opacity
+    .value;
 
 void main() {
   tearDown(Get.reset);
-  testWidgets('enter and exit render the same frames in reverse', (
+  testWidgets('reveal mid-entry and return opaque without dim or blur', (
     tester,
   ) async {
     await tester.pumpWidget(
       GetMaterialApp(
         navigatorObservers: [routeObserver],
-        builder: (context, child) => RepaintBoundary(
-          key: videoTransitionCaptureBoundaryKey,
-          child: child!,
-        ),
         home: const _SourcePage(),
       ),
     );
-    final initial = tester.getRect(find.byKey(const ValueKey('video-card')));
-    await tester.tap(find.byKey(const ValueKey('video-card')));
+    final card = find.byKey(const ValueKey('video-card'));
+    final initial = tester.getRect(card);
+    await tester.tap(card);
     await tester.pump();
-    final frames = <List<double>>[];
-    for (var step = 1; step <= 9; step++) {
-      if (step == 1) {
-        await tester.pump(const Duration(milliseconds: 16));
-        final firstFrame = _frame(tester);
-        expect(firstFrame[2], greaterThan(initial.width + 1));
-        expect(firstFrame[3], greaterThan(initial.height + 1));
-        expect(firstFrame[6], greaterThan(0));
-        await tester.pump(
-          videoPageTransitionDuration ~/ 10 - const Duration(milliseconds: 16),
-        );
-      } else {
-        await tester.pump(videoPageTransitionDuration ~/ 10);
-      }
-      final frame = _frame(tester);
-      expect(
-        frame[2],
-        greaterThanOrEqualTo(frames.isEmpty ? initial.width : frames.last[2]),
-      );
-      expect(
-        frame[6],
-        greaterThanOrEqualTo(frames.isEmpty ? 0.0 : frames.last[6]),
-      );
-      if (step >= 7) {
-        // No clear-background flash at full screen or during page reveal.
-        expect(frame[6], 1);
-        expect(
-          frame[2],
-          closeTo(
-            tester.view.physicalSize.width / tester.view.devicePixelRatio + 144,
-            0.001,
-          ),
-        );
-      }
-      frames.add(frame);
-      expect(tester.takeException(), isNull);
-    }
+    await tester.pump(const Duration(milliseconds: 16));
+    final flight = find.byKey(const ValueKey('video-transition-flight'));
+    expect(tester.getRect(flight).width, greaterThan(initial.width + 1));
     expect(find.byType(BackdropFilter), findsNothing);
-    expect(find.byType(ImageFiltered), findsOneWidget);
-    expect(find.byType(FittedBox), findsNothing);
+    expect(find.byType(ImageFiltered), findsNothing);
+    expect(find.byType(SnapshotWidget), findsNothing);
+    expect(find.byType(RawImage), findsNothing);
+    expect(find.byKey(const ValueKey('video-transition-dim')), findsOneWidget);
+    expect(_pageOpacity(tester), 0);
+    await tester.pump(const Duration(milliseconds: 264)); // 50% of entry
+    expect(_pageOpacity(tester), greaterThan(0));
+    expect(_pageOpacity(tester), lessThan(1));
+    await tester.pump(const Duration(milliseconds: 100)); // expansion complete
+    expect(_pageOpacity(tester), 1);
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('video-transition-dim')), findsNothing);
     expect(Get.routing.route, isA<GetPageRoute>());
     expect(Get.currentRoute, '/videoV');
     expect(Get.arguments['heroTag'], 'video-card-transition-test');
     expect(Get.isRegistered<_PlaybackProbeController>(), isTrue);
-    expect(_opacity(tester, 'video-transition-page'), 1);
-
+    expect(_PlaybackProbeController.creations, 1);
+    expect(_ContentProbeState.creations, 1);
+    final page = find.byKey(const ValueKey('video-transition-page-container'));
+    final full = tester.getRect(page);
     Navigator.of(tester.element(find.text('播放页'))).pop();
     await tester.pump();
-    for (var step = 1; step <= 9; step++) {
-      await tester.pump(videoPageReverseTransitionDuration ~/ 10);
-      final reverse = _frame(tester);
-      final forward = frames[9 - step];
-      for (var field = 0; field < forward.length; field++) {
-        expect(
-          reverse[field],
-          closeTo(forward[field], 0.001),
-          reason: 'progress ${1 - step / 10}, field $field',
-        );
-      }
-      if (step == 9) {
-        expect(_opacity(tester, 'video-transition-backdrop'), lessThan(0.2));
-      }
+    var previous = full;
+    for (var step = 1; step <= 10; step++) {
+      await tester.pump(
+        step == 1
+            ? const Duration(milliseconds: 16)
+            : const Duration(milliseconds: 50),
+      );
+      final rect = tester.getRect(page);
+      expect(rect.width, lessThan(previous.width));
+      expect(rect.height, lessThan(previous.height));
+      expect(_pageOpacity(tester), 1);
+      expect(find.byKey(const ValueKey('video-transition-dim')), findsNothing);
+      expect(find.byType(BackdropFilter), findsNothing);
+      expect(find.byType(ImageFiltered), findsNothing);
+      expect(
+        find.byKey(const ValueKey('video-transition-flight')),
+        findsNothing,
+      );
+      expect(_PlaybackProbeController.creations, 1);
+      expect(_ContentProbeState.creations, 1);
       expect(tester.takeException(), isNull);
+      previous = rect;
     }
+    expect(previous.center.dx, closeTo(initial.center.dx, 1));
+    expect(previous.width, closeTo(initial.width, 5));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('video-card')), findsOneWidget);
+    expect(card, findsOneWidget);
     expect(Get.isRegistered<_PlaybackProbeController>(), isFalse);
   });
 }
@@ -128,37 +85,34 @@ class _SourcePage extends StatelessWidget {
   const _SourcePage();
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: VideoCardHero(
-          tag: 'video-card-transition-test',
-          child: InkWell(
-            key: const ValueKey('video-card'),
-            onTap: () => Navigator.of(context).push(
-              VideoPageTransitionRoute<void>(
-                settings: const RouteSettings(
-                  name: '/videoV',
-                  arguments: {'heroTag': 'video-card-transition-test'},
-                ),
-                builder: (_) => const _TargetPage(),
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(
+      child: VideoCardHero(
+        tag: 'video-card-transition-test',
+        child: InkWell(
+          key: const ValueKey('video-card'),
+          onTap: () => Navigator.of(context).push(
+            VideoPageTransitionRoute<void>(
+              settings: const RouteSettings(
+                name: '/videoV',
+                arguments: {'heroTag': 'video-card-transition-test'},
               ),
+              builder: (_) => const _TargetPage(),
             ),
-            child: const SizedBox(
-              width: 180,
-              height: 120,
-              child: ColoredBox(color: Colors.blue),
-            ),
+          ),
+          child: const SizedBox(
+            width: 180,
+            height: 120,
+            child: ColoredBox(color: Colors.blue),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _TargetPage extends StatefulWidget {
   const _TargetPage();
-
   @override
   State<_TargetPage> createState() => _TargetPageState();
 }
@@ -172,13 +126,37 @@ class _TargetPageState extends State<_TargetPage>
   }
 
   @override
-  Widget build(BuildContext context) {
-    return VideoPageHeroTarget(
-      tag: 'video-card-transition-test',
-      surfaceColor: Theme.of(context).colorScheme.surface,
-      child: const Scaffold(body: Center(child: Text('播放页'))),
-    );
-  }
+  Widget build(BuildContext context) => VideoPageHeroTarget(
+    tag: 'video-card-transition-test',
+    surfaceColor: Theme.of(context).colorScheme.surface,
+    child: const _ContentProbe(),
+  );
 }
 
-class _PlaybackProbeController extends GetxController {}
+class _PlaybackProbeController extends GetxController {
+  _PlaybackProbeController() {
+    creations++;
+  }
+  static int creations = 0;
+}
+
+class _ContentProbe extends StatefulWidget {
+  const _ContentProbe();
+
+  @override
+  State<_ContentProbe> createState() => _ContentProbeState();
+}
+
+class _ContentProbeState extends State<_ContentProbe> {
+  static int creations = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    creations++;
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      const Scaffold(body: Center(child: Text('播放页')));
+}

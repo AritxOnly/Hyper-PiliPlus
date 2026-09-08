@@ -1,96 +1,43 @@
 import 'dart:async' show unawaited;
-import 'dart:ui' as ui show Image, ImageFilter, TileMode, lerpDouble;
+import 'dart:ui' as ui show lerpDouble;
 
 import 'package:PiliPlus/utils/android/android_helper.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
-import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:get/get.dart' show GetPageRoute;
 import 'package:material_ui/material_ui.dart';
 
 const double _cardRadius = 12;
 const double _pageRadius = 72;
 const Curve _containerCurve = Interval(0, 0.66, curve: Curves.easeOutCubic);
-const double _surfaceFadeInStart = 0.66;
-const double _surfaceFadeInEnd = 0.80;
-const double _heroSurfaceFadeOutStart = 0.72;
-const double _heroSurfaceFadeOutEnd = 0.84;
+const Curve _revealCurve = Interval(0.42, 0.66, curve: Curves.easeInOutCubic);
 const Duration videoPageTransitionDuration = Duration(milliseconds: 560);
 const Duration videoPageReverseTransitionDuration = Duration(milliseconds: 500);
-final ui.ImageFilter _backgroundBlurFilter = ui.ImageFilter.blur(
-  sigmaX: 6,
-  sigmaY: 6,
-  tileMode: ui.TileMode.clamp,
-);
-final GlobalKey videoTransitionCaptureBoundaryKey = GlobalKey(
-  debugLabel: 'video-transition-capture-boundary',
-);
-_CapturedVideoTransition? _pendingVideoTransition;
-
-class _CapturedVideoTransition {
-  const _CapturedVideoTransition({required this.tag, required this.image});
-
-  final Object tag;
-  final ui.Image? image;
-}
+({Object tag, RenderBox box})? _pendingVideoTransition;
 
 bool hasPendingVideoCardTransition(Object tag) =>
     _pendingVideoTransition?.tag == tag;
 
-_CapturedVideoTransition? _claimVideoCardTransition(Object tag) {
-  if (!hasPendingVideoCardTransition(tag)) return null;
-  final transition = _pendingVideoTransition;
-  _pendingVideoTransition = null;
-  return transition;
-}
-
-void _captureVideoTransitionBackground(Object tag) {
-  ui.Image? image;
-  final boundary = videoTransitionCaptureBoundaryKey.currentContext
-      ?.findRenderObject();
-  if (boundary is RenderRepaintBoundary && boundary.hasSize) {
-    try {
-      image = boundary.toImageSync(pixelRatio: 1);
-    } catch (_) {
-      // The live blur fallback remains available when a platform cannot capture.
-    }
+// Keep only geometry: tapping no longer captures or filters a full-screen image.
+void _prepareVideoTransition(Object tag, BuildContext context) {
+  final box = context.findRenderObject();
+  if (box is RenderBox && box.hasSize) {
+    _pendingVideoTransition = (tag: tag, box: box);
   }
-  _pendingVideoTransition?.image?.dispose();
-  _pendingVideoTransition = _CapturedVideoTransition(tag: tag, image: image);
 }
-
-// Start moving on the first frame and cover the viewport before page reveal.
-// Both directions evaluate the same curve without Hero applying another curve.
-double _containerProgress(double value) => _containerCurve.transform(value);
 
 class _VideoCardRectTween extends RectTween {
-  _VideoCardRectTween({
-    required super.begin,
-    required super.end,
-    this.returning = false,
-  });
-
-  final bool returning;
+  _VideoCardRectTween({required super.begin, required super.end});
 
   @override
-  Rect? lerp(double t) => Rect.lerp(
-    begin,
-    end,
-    returning ? 1 - _containerProgress(1 - t) : _containerProgress(t),
-  );
+  Rect? lerp(double t) => Rect.lerp(begin, end, _containerCurve.transform(t));
 }
 
-/// A longer, otherwise transparent route used by the two-stage video Hero.
+/// Retain GetX's playback/controller lifecycle, replacing only the visuals.
 class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
-  VideoPageTransitionRoute({
-    required WidgetBuilder builder,
-    super.settings,
-  }) : super(
-         page: () => Builder(builder: builder),
-       );
+  VideoPageTransitionRoute({required WidgetBuilder builder, super.settings})
+    : super(page: () => Builder(builder: builder));
 
-  // Playback screens and controller cleanup rely on GetPageRoute's lifecycle.
-  // Only replace its visual transition, not the route implementation.
   @override
   Duration get transitionDuration => videoPageTransitionDuration;
 
@@ -109,40 +56,31 @@ class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
   ) => child;
 }
 
-/// A video card that grows into the complete playback page.
 class VideoCardHero extends StatelessWidget {
-  const VideoCardHero({
-    super.key,
-    required this.tag,
-    required this.child,
-  });
+  const VideoCardHero({super.key, required this.tag, required this.child});
 
   final Object tag;
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: (_) => _captureVideoTransitionBackground(tag),
-      child: Hero(
-        tag: tag,
-        curve: Curves.linear,
-        reverseCurve: Curves.linear,
-        transitionOnUserGestures: true,
-        createRectTween: (begin, end) =>
-            _VideoCardRectTween(begin: begin, end: end, returning: true),
-        flightShuttleBuilder: _buildFlightShuttle,
-        child: ClipRRect(
-          borderRadius: const .all(.circular(_cardRadius)),
-          child: child,
-        ),
+  Widget build(BuildContext context) => Listener(
+    onPointerDown: (_) => _prepareVideoTransition(tag, context),
+    child: Hero(
+      tag: tag,
+      curve: Curves.linear,
+      reverseCurve: Curves.linear,
+      transitionOnUserGestures: true,
+      createRectTween: (begin, end) =>
+          _VideoCardRectTween(begin: begin, end: end),
+      flightShuttleBuilder: _buildFlightShuttle,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.all(Radius.circular(_cardRadius)),
+        child: child,
       ),
-    );
-  }
+    ),
+  );
 }
 
-/// Places the matching Hero just outside the viewport, so its growing corners
-/// finish beyond the screen while the rounded surface still covers every pixel.
 class VideoPageHeroTarget extends StatefulWidget {
   const VideoPageHeroTarget({
     super.key,
@@ -161,43 +99,46 @@ class VideoPageHeroTarget extends StatefulWidget {
 
 class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
   Animation<double>? _routeAnimation;
-  late final SnapshotController _backdropSnapshotController;
-  late final _CapturedVideoTransition? _capturedTransition;
-  late final bool _hasSharedTransition;
+  RenderBox? _sourceBox;
+  Rect? _sourceRect;
   bool _samplingPaused = false;
 
   @override
   void initState() {
     super.initState();
-    _capturedTransition = _claimVideoCardTransition(widget.tag);
-    _hasSharedTransition = _capturedTransition != null;
-    _backdropSnapshotController = SnapshotController()
-      ..allowSnapshotting = true;
+    if (hasPendingVideoCardTransition(widget.tag)) {
+      _sourceBox = _pendingVideoTransition!.box;
+      _sourceRect = _sourceBox!.localToGlobal(Offset.zero) & _sourceBox!.size;
+      _pendingVideoTransition = null;
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_hasSharedTransition) return;
+    if (_sourceRect == null) return;
     final animation = ModalRoute.of(context)?.animation;
     if (identical(animation, _routeAnimation)) return;
     _routeAnimation?.removeStatusListener(_handleAnimationStatus);
     _routeAnimation = animation;
     animation?.addStatusListener(_handleAnimationStatus);
-    if (animation != null) {
-      _handleAnimationStatus(animation.status);
-    }
+    if (animation != null) _handleAnimationStatus(animation.status);
   }
 
   void _handleAnimationStatus(AnimationStatus status) {
+    final box = _sourceBox;
+    if (status == AnimationStatus.reverse &&
+        box != null &&
+        box.attached &&
+        box.hasSize) {
+      _sourceRect = box.localToGlobal(Offset.zero) & box.size;
+    }
     final shouldPause =
         status == AnimationStatus.forward || status == AnimationStatus.reverse;
     if (_samplingPaused == shouldPause) return;
     _samplingPaused = shouldPause;
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      unawaited(
-        PiliAndroidHelper.setMiuixBackdropSamplingPaused(shouldPause),
-      );
+      unawaited(PiliAndroidHelper.setMiuixBackdropSamplingPaused(shouldPause));
     }
   }
 
@@ -209,136 +150,126 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
         defaultTargetPlatform == TargetPlatform.android) {
       unawaited(PiliAndroidHelper.setMiuixBackdropSamplingPaused(false));
     }
-    _backdropSnapshotController.dispose();
-    _capturedTransition?.image?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_hasSharedTransition) return widget.child;
-    final routeAnimation = _routeAnimation;
-    final backdropOpacity = routeAnimation == null
-        ? null
-        // Track expansion, not a separate pulse: the opaque page hides this
-        // layer at full screen. Squaring makes the return tail clear sooner.
-        : CurveTween(curve: Curves.easeInQuad)
-              .chain(CurveTween(curve: _containerCurve))
-              .animate(routeAnimation);
-    final pageSurfaceOpacity = routeAnimation == null
-        ? null
-        : CurveTween(
-            curve: const Interval(
-              _surfaceFadeInStart,
-              _surfaceFadeInEnd,
-              curve: Curves.easeInOutCubic,
-            ),
-          ).animate(routeAnimation);
-    final pageOpacity = routeAnimation == null
-        ? kAlwaysCompleteAnimation
-        : CurveTween(
-            curve: const Interval(0.68, 1, curve: Curves.easeInCubic),
-          ).animate(routeAnimation);
-    return Stack(
-      fit: .expand,
-      clipBehavior: .none,
-      children: [
-        if (backdropOpacity != null)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: FadeTransition(
-                key: const ValueKey('video-transition-backdrop'),
-                opacity: backdropOpacity,
-                child: SnapshotWidget(
-                  controller: _backdropSnapshotController,
-                  mode: SnapshotMode.permissive,
-                  child: _TransitionBackdrop(
-                    snapshot: _capturedTransition?.image,
+    final animation = _routeAnimation;
+    if (_sourceRect == null || animation == null) return widget.child;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        final viewport = Offset.zero & size;
+        final reveal = CurveTween(curve: _revealCurve).animate(animation);
+        return AnimatedBuilder(
+          animation: animation,
+          child: widget.child,
+          builder: (context, child) {
+            final returning = animation.status == AnimationStatus.reverse;
+            final box = context.findRenderObject();
+            final origin = box is RenderBox && box.hasSize
+                ? box.localToGlobal(Offset.zero)
+                : Offset.zero;
+            final source = _sourceRect!.shift(-origin);
+            final expansion = _containerCurve.transform(animation.value);
+            final contraction = Curves.easeInOutCubic.transform(
+              1 - animation.value,
+            );
+            final pageRect = returning
+                ? Rect.lerp(viewport, source, contraction)!
+                : viewport;
+            final clipRect = returning
+                ? Offset.zero & pageRect.size
+                : Rect.lerp(source, viewport.inflate(_pageRadius), expansion)!;
+            final radius = returning
+                ? _cardRadius * contraction
+                : ui.lerpDouble(_cardRadius, _pageRadius, expansion)!;
+            return Stack(
+              fit: StackFit.expand,
+              clipBehavior: Clip.none,
+              children: [
+                if (!returning && animation.status != AnimationStatus.completed)
+                  Positioned.fill(
+                    key: const ValueKey('video-transition-dim-position'),
+                    child: IgnorePointer(
+                      child: ColoredBox(
+                        key: const ValueKey('video-transition-dim'),
+                        color: Colors.black.withValues(alpha: 0.16 * expansion),
+                      ),
+                    ),
+                  ),
+                Positioned.fromRect(
+                  key: const ValueKey('video-transition-page-position'),
+                  rect: pageRect,
+                  child: ClipRRect(
+                    key: const ValueKey('video-transition-page-container'),
+                    clipper: _PageClipper(clipRect, radius),
+                    child: ColoredBox(
+                      // Opaque underlay prevents a gap during the Hero handoff.
+                      color: returning || animation.value >= 0.42
+                          ? widget.surfaceColor
+                          : Colors.transparent,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: SizedBox.fromSize(
+                          size: size,
+                          child: FadeTransition(
+                            key: const ValueKey('video-transition-page'),
+                            opacity: returning
+                                ? kAlwaysCompleteAnimation
+                                : reveal,
+                            child: RepaintBoundary(child: child),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
-        if (routeAnimation != null)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: FadeTransition(
-                key: const ValueKey('video-transition-page-surface-opacity'),
-                opacity: pageSurfaceOpacity!,
-                child: ColoredBox(
-                  key: const ValueKey('video-transition-page-surface'),
-                  color: widget.surfaceColor,
+                Positioned(
+                  key: const ValueKey('video-transition-hero-position'),
+                  left: -_pageRadius,
+                  top: -_pageRadius,
+                  right: -_pageRadius,
+                  bottom: -_pageRadius,
+                  child: IgnorePointer(
+                    child: Hero(
+                      tag: widget.tag,
+                      curve: Curves.linear,
+                      reverseCurve: Curves.linear,
+                      transitionOnUserGestures: true,
+                      createRectTween: (begin, end) =>
+                          _VideoCardRectTween(begin: begin, end: end),
+                      flightShuttleBuilder: _buildFlightShuttle,
+                      child: _VideoPageSurface(color: widget.surfaceColor),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
-        if (routeAnimation == null)
-          widget.child
-        else
-          FadeTransition(
-            key: const ValueKey('video-transition-page'),
-            opacity: pageOpacity,
-            child: widget.child,
-          ),
-        Positioned(
-          left: -_pageRadius,
-          top: -_pageRadius,
-          right: -_pageRadius,
-          bottom: -_pageRadius,
-          child: IgnorePointer(
-            child: Hero(
-              tag: widget.tag,
-              curve: Curves.linear,
-              reverseCurve: Curves.linear,
-              transitionOnUserGestures: true,
-              createRectTween: (begin, end) =>
-                  _VideoCardRectTween(begin: begin, end: end),
-              flightShuttleBuilder: _buildFlightShuttle,
-              child: _VideoPageSurface(color: widget.surfaceColor),
-            ),
-          ),
-        ),
-      ],
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
 
-class _TransitionBackdrop extends StatelessWidget {
-  const _TransitionBackdrop({required this.snapshot});
-
-  final ui.Image? snapshot;
+class _PageClipper extends CustomClipper<RRect> {
+  const _PageClipper(this.rect, this.radius);
+  final Rect rect;
+  final double radius;
 
   @override
-  Widget build(BuildContext context) {
-    final image = snapshot;
-    return ClipRect(
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (image == null)
-            BackdropFilter(
-              filter: _backgroundBlurFilter,
-              child: const SizedBox.expand(),
-            )
-          else
-            ImageFiltered(
-              imageFilter: _backgroundBlurFilter,
-              child: RawImage(
-                image: image,
-                fit: BoxFit.fill,
-                filterQuality: FilterQuality.low,
-              ),
-            ),
-          ColoredBox(color: Colors.black.withValues(alpha: 0.055)),
-        ],
-      ),
-    );
-  }
+  RRect getClip(Size size) =>
+      RRect.fromRectAndRadius(rect, Radius.circular(radius));
+
+  @override
+  bool shouldReclip(_PageClipper oldClipper) =>
+      rect != oldClipper.rect || radius != oldClipper.radius;
 }
 
 class _VideoPageSurface extends StatelessWidget {
   const _VideoPageSurface({required this.color});
-
   final Color color;
 
   @override
@@ -352,28 +283,22 @@ Widget _buildFlightShuttle(
   BuildContext fromHeroContext,
   BuildContext toHeroContext,
 ) {
-  final cardContext = direction == HeroFlightDirection.push
-      ? fromHeroContext
-      : toHeroContext;
-  final pageContext = direction == HeroFlightDirection.push
-      ? toHeroContext
-      : fromHeroContext;
-  final cardHero = cardContext.widget as Hero;
-  final pageHero = pageContext.widget as Hero;
-  final pageSurface = pageHero.child as _VideoPageSurface;
-  final renderBox = cardContext.findRenderObject() as RenderBox?;
+  // Shrink the mounted page on return; never duplicate its playback state.
+  if (direction == HeroFlightDirection.pop) return const SizedBox.expand();
+  final cardHero = fromHeroContext.widget as Hero;
+  final pageSurface = (toHeroContext.widget as Hero).child as _VideoPageSurface;
+  final renderBox = fromHeroContext.findRenderObject() as RenderBox?;
   final cardSize = renderBox?.size ?? const Size(1, 1);
-  final cardSurface = Theme.of(cardContext).colorScheme.surfaceContainer;
+  final cardSurface = Theme.of(fromHeroContext).colorScheme.surfaceContainer;
   final card = InheritedTheme.captureAll(
-    cardContext,
-    Material(type: .transparency, child: cardHero.child),
+    fromHeroContext,
+    Material(type: MaterialType.transparency, child: cardHero.child),
   );
-
   return AnimatedBuilder(
     animation: animation,
     child: card,
     builder: (context, child) {
-      final progress = _containerProgress(animation.value);
+      final progress = _containerCurve.transform(animation.value);
       final radius = ui.lerpDouble(_cardRadius, _pageRadius, progress)!;
       final cardOpacity =
           1 -
@@ -382,40 +307,30 @@ Widget _buildFlightShuttle(
             0.88,
             curve: Curves.easeInOutCubic,
           ).transform(progress);
-      final surfaceOpacity =
-          1 -
-          const Interval(
-            _heroSurfaceFadeOutStart,
-            _heroSurfaceFadeOutEnd,
-            curve: Curves.easeInOutCubic,
-          ).transform(animation.value);
-      final surfaceColor = Color.lerp(
-        cardSurface,
-        pageSurface.color,
-        progress,
-      )!.withValues(alpha: surfaceOpacity);
-
       return ClipRRect(
         key: const ValueKey('video-transition-flight'),
-        borderRadius: .all(.circular(radius)),
-        child: Stack(
-          fit: .expand,
-          children: [
-            ColoredBox(
-              color: surfaceColor,
-            ),
-            if (cardOpacity > 0)
-              Align(
-                alignment: Alignment.topLeft,
-                child: Opacity(
-                  opacity: cardOpacity,
-                  child: SizedBox.fromSize(
-                    size: cardSize,
-                    child: RepaintBoundary(child: child),
+        borderRadius: BorderRadius.all(Radius.circular(radius)),
+        child: Opacity(
+          opacity: 1 - _revealCurve.transform(animation.value),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ColoredBox(
+                color: Color.lerp(cardSurface, pageSurface.color, progress)!,
+              ),
+              if (cardOpacity > 0)
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Opacity(
+                    opacity: cardOpacity,
+                    child: SizedBox.fromSize(
+                      size: cardSize,
+                      child: RepaintBoundary(child: child),
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       );
     },
