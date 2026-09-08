@@ -2,22 +2,29 @@ import 'package:PiliPlus/http/live.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/live/live_dm_silent_type.dart';
 import 'package:PiliPlus/models_new/live/live_dm_block/shield_user_list.dart';
+import 'package:PiliPlus/pages/live_room/controller.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 class LiveDmBlockController extends GetxController
     with GetSingleTickerProviderStateMixin {
   final roomId = Get.parameters['roomId']!;
+  LiveRoomController? _liveRoomController;
 
   @override
   void onInit() {
     super.onInit();
+    final args = Get.arguments;
+    if (args is LiveRoomController) {
+      _liveRoomController = args;
+    }
     tabController = TabController(length: 2, vsync: this);
     queryData();
   }
 
   late final TabController tabController;
 
+  bool _isLoaded = false;
   int? oldLevel;
   final RxInt level = 0.obs;
   final RxInt rank = 0.obs;
@@ -34,6 +41,7 @@ class LiveDmBlockController extends GetxController
   Future<void> queryData() async {
     final res = await LiveHttp.getLiveInfoByUser(roomId);
     if (res case Success(:final response)) {
+      _isLoaded = true;
       final shieldRules = response?.shieldRules;
       level.value = shieldRules?.level ?? 0;
       rank.value = shieldRules?.rank ?? 0;
@@ -125,7 +133,7 @@ class LiveDmBlockController extends GetxController
     assert(item is ShieldUserList || item is String);
     if (item is ShieldUserList) {
       final res = await LiveHttp.liveShieldUser(
-        uid: item.uid!,
+        uid: item.uid,
         roomid: roomId,
         type: 0,
       );
@@ -144,8 +152,19 @@ class LiveDmBlockController extends GetxController
     }
   }
 
+  void _updateLiveRoomRules() {
+    if (_isLoaded && _liveRoomController != null) {
+      _liveRoomController!.updateBlockRules(
+        keywordList.rawValue,
+        shieldUserList.map((item) => item.uid).toSet(),
+      );
+    }
+    _liveRoomController = null;
+  }
+
   @override
   void onClose() {
+    _updateLiveRoomRules();
     tabController.dispose();
     super.onClose();
   }
