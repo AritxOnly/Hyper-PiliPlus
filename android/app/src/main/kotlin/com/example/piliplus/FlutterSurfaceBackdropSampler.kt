@@ -150,6 +150,14 @@ internal class FlutterSurfaceBackdropSampler(
         flutterUiDisplayed = false
     }
 
+    /** Dart reports completed raster frames, including late network/image paints.
+     * scheduleCapture respects visibility, transition pauses and PixelCopy limits;
+     * this wake-up does not start an idle capture loop.
+     */
+    fun onFlutterFrameRendered() {
+        scheduleCapture(preemptDelayed = true)
+    }
+
     fun setNavigationBounds(bounds: FlutterBackdropBounds) {
         if (navigationBounds == bounds) return
         navigationBounds = bounds

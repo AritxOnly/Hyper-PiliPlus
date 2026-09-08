@@ -461,7 +461,8 @@ class _MainAppState extends PopScopeState<MainApp>
         outline: _colorScheme.outline.toARGB32(),
         // Compose cannot record Flutter's SurfaceView into a LayerBackdrop.
         // The Android bridge therefore imports only the small region behind
-        // the bar while the page is moving, without adding a Flutter overlay.
+        // the bar on touch motion and completed Flutter frames, including
+        // refresh/image updates, without adding a Flutter overlay.
         backdropSampling: true,
         backdropDebug: _mainController.miuixBackdropSampling,
       );

@@ -115,6 +115,10 @@ internal class MiuixNavigationOverlay(
                     updateBackdropSampling()
                     result.success(null)
                 }
+                "flutterFrameRendered" -> {
+                    backdropSampler.onFlutterFrameRendered()
+                    result.success(null)
+                }
                 "setBackdropSamplingPaused" -> {
                     backdropSamplingPaused = call.arguments as? Boolean ?: false
                     updateBackdropSampling()

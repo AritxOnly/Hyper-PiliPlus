@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:PiliPlus/utils/android/bindings.g.dart';
+import 'package:PiliPlus/utils/android/backdrop_frame_notifier.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:jni/jni.dart';
@@ -11,6 +12,10 @@ abstract final class PiliAndroidHelper {
     'com.aritxonly.hyperpiliplus/miuix_navigation',
   );
   static void Function(int index)? _onMiuixDestinationSelected;
+  static final _backdropFrames = BackdropFrameNotifier(
+    onFrameReady: () =>
+        _miuixNavigationChannel.invokeMethod<void>('flutterFrameRendered'),
+  );
 
   static void setMiuixDestinationHandler(void Function(int index)? handler) {
     _onMiuixDestinationSelected = handler;
@@ -34,35 +39,49 @@ abstract final class PiliAndroidHelper {
     required int outline,
     required bool backdropSampling,
     required bool backdropDebug,
-  }) => _miuixNavigationChannel.invokeMethod<void>('update', {
-    'destinations': destinations,
-    'selectedIndex': selectedIndex,
-    'visible': visible,
-    'dark': dark,
-    'primary': primary,
-    'background': background,
-    'surface': surface,
-    'surfaceContainer': surfaceContainer,
-    'onSurface': onSurface,
-    'outline': outline,
-    'backdropSampling': backdropSampling,
-    'backdropDebug': backdropDebug,
-  });
+  }) {
+    // Queue native visibility first; enabling the notifier immediately requests
+    // a fresh sample, even if the surface is already idle.
+    final update = _miuixNavigationChannel.invokeMethod<void>('update', {
+      'destinations': destinations,
+      'selectedIndex': selectedIndex,
+      'visible': visible,
+      'dark': dark,
+      'primary': primary,
+      'background': background,
+      'surface': surface,
+      'surfaceContainer': surfaceContainer,
+      'onSurface': onSurface,
+      'outline': outline,
+      'backdropSampling': backdropSampling,
+      'backdropDebug': backdropDebug,
+    });
+    _backdropFrames.configure(visible: visible && backdropSampling);
+    return update;
+  }
 
-  static Future<void> hideMiuixNavigation() =>
-      _miuixNavigationChannel.invokeMethod<void>('hide');
+  static Future<void> hideMiuixNavigation() {
+    _backdropFrames.configure(visible: false);
+    return _miuixNavigationChannel.invokeMethod<void>('hide');
+  }
 
-  static Future<void> setMiuixOverlayOccluded(bool occluded) =>
-      _miuixNavigationChannel.invokeMethod<void>(
-        'setOverlayOccluded',
-        occluded,
-      );
+  static Future<void> setMiuixOverlayOccluded(bool occluded) {
+    final update = _miuixNavigationChannel.invokeMethod<void>(
+      'setOverlayOccluded',
+      occluded,
+    );
+    _backdropFrames.configure(occluded: occluded);
+    return update;
+  }
 
-  static Future<void> setMiuixBackdropSamplingPaused(bool paused) =>
-      _miuixNavigationChannel.invokeMethod<void>(
-        'setBackdropSamplingPaused',
-        paused,
-      );
+  static Future<void> setMiuixBackdropSamplingPaused(bool paused) {
+    final update = _miuixNavigationChannel.invokeMethod<void>(
+      'setBackdropSamplingPaused',
+      paused,
+    );
+    _backdropFrames.configure(paused: paused);
+    return update;
+  }
 
   @pragma('vm:prefer-inline')
   static void back() => AndroidHelper.back();
