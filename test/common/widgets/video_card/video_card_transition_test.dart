@@ -1,13 +1,18 @@
 import 'package:PiliPlus/common/widgets/video_card/video_card_transition.dart';
+import 'package:PiliPlus/common/widgets/route_aware_mixin.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
+  tearDown(Get.reset);
+
   testWidgets('video card expands to the page and returns without errors', (
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
+      GetMaterialApp(
+        navigatorObservers: [routeObserver],
         builder: (context, child) => RepaintBoundary(
           key: videoTransitionCaptureBoundaryKey,
           child: child!,
@@ -121,6 +126,20 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(Get.routing.route, isA<GetPageRoute>());
+    expect(Get.currentRoute, '/videoV');
+    expect(Get.arguments['heroTag'], 'video-card-transition-test');
+    expect(Get.isRegistered<_PlaybackProbeController>(), isTrue);
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('video-transition-page')),
+          )
+          .opacity
+          .value,
+      1,
+    );
     Navigator.of(tester.element(find.text('播放页'))).pop();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
@@ -151,6 +170,7 @@ void main() {
 
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('video-card')), findsOneWidget);
+    expect(Get.isRegistered<_PlaybackProbeController>(), isFalse);
   });
 }
 
@@ -167,6 +187,10 @@ class _SourcePage extends StatelessWidget {
             key: const ValueKey('video-card'),
             onTap: () => Navigator.of(context).push(
               VideoPageTransitionRoute<void>(
+                settings: const RouteSettings(
+                  name: '/videoV',
+                  arguments: {'heroTag': 'video-card-transition-test'},
+                ),
                 builder: (_) => const _TargetPage(),
               ),
             ),
@@ -182,8 +206,20 @@ class _SourcePage extends StatelessWidget {
   }
 }
 
-class _TargetPage extends StatelessWidget {
+class _TargetPage extends StatefulWidget {
   const _TargetPage();
+
+  @override
+  State<_TargetPage> createState() => _TargetPageState();
+}
+
+class _TargetPageState extends State<_TargetPage>
+    with RouteAware, RouteAwareMixin {
+  @override
+  void initState() {
+    super.initState();
+    Get.put(_PlaybackProbeController());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -194,3 +230,5 @@ class _TargetPage extends StatelessWidget {
     );
   }
 }
+
+class _PlaybackProbeController extends GetxController {}

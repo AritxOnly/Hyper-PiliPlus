@@ -5,6 +5,7 @@ import 'package:PiliPlus/utils/android/android_helper.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
+import 'package:get/get.dart' show GetPageRoute;
 import 'package:material_ui/material_ui.dart';
 
 const double _cardRadius = 12;
@@ -73,18 +74,32 @@ class _VideoCardRectTween extends RectTween {
 }
 
 /// A longer, otherwise transparent route used by the two-stage video Hero.
-class VideoPageTransitionRoute<T> extends PageRouteBuilder<T> {
+class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
   VideoPageTransitionRoute({
     required WidgetBuilder builder,
     super.settings,
   }) : super(
-         transitionDuration: videoPageTransitionDuration,
-         reverseTransitionDuration: videoPageReverseTransitionDuration,
-         pageBuilder: (context, animation, secondaryAnimation) =>
-             builder(context),
-         transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-             child,
+         page: () => Builder(builder: builder),
        );
+
+  // Playback screens and controller cleanup rely on GetPageRoute's lifecycle.
+  // Only replace its visual transition, not the route implementation.
+  @override
+  Duration get transitionDuration => videoPageTransitionDuration;
+
+  @override
+  Duration get reverseTransitionDuration => videoPageReverseTransitionDuration;
+
+  @override
+  DelegatedTransitionBuilder? get delegatedTransition => null;
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => child;
 }
 
 /// A video card that grows into the complete playback page.
