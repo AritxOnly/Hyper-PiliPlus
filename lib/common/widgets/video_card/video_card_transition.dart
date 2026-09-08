@@ -209,12 +209,14 @@ class VideoPageHeroTarget extends StatefulWidget {
 }
 
 class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
+  ModalRoute<dynamic>? _route;
   Animation<double>? _routeAnimation;
   RenderBox? _sourceBox;
   Rect? _sourceRect;
   Color? _sourceColor;
   BuildContext? _sourceContext;
   bool _samplingPaused = false;
+  bool _entryCompleted = false;
 
   @override
   void initState() {
@@ -232,7 +234,8 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_sourceRect == null) return;
-    final animation = ModalRoute.of(context)?.animation;
+    _route = ModalRoute.of(context);
+    final animation = _route?.animation;
     if (identical(animation, _routeAnimation)) return;
     _routeAnimation?.removeStatusListener(_handleAnimationStatus);
     _routeAnimation = animation;
@@ -241,6 +244,11 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
   }
 
   void _handleAnimationStatus(AnimationStatus status) {
+    // Hero measures its destination offstage with a fake completed animation.
+    // That is not a completed entry and must not enable the full-page exit.
+    if (status == AnimationStatus.completed && _route?.offstage == false) {
+      _entryCompleted = true;
+    }
     if (status == AnimationStatus.reverse && _sourceContext?.mounted == true) {
       _sourceColor = (_sourceContext!.widget as VideoCardHero).surfaceColor;
     }
@@ -286,9 +294,13 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
           builder: (context, child) {
             // Interactive updates can report "forward" even while their value
             // decreases. Keep the return composition until the gesture settles.
-            final returning =
+            final reversing =
                 animation.status == AnimationStatus.reverse ||
                 (ModalRoute.of(context)?.popGestureInProgress ?? false);
+            // Flutter diverts an unfinished push by reversing its existing
+            // Hero tween/shuttle. The page must retrace that same entry too,
+            // not start a second contraction from an assumed full-screen page.
+            final returning = reversing && _entryCompleted;
             final box = context.findRenderObject();
             final origin = box is RenderBox && box.hasSize
                 ? box.localToGlobal(Offset.zero)
@@ -320,7 +332,7 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
               fit: StackFit.expand,
               clipBehavior: Clip.none,
               children: [
-                if (!returning && animation.status != AnimationStatus.completed)
+                if (!reversing && animation.status != AnimationStatus.completed)
                   Positioned.fill(
                     key: const ValueKey('video-transition-dim-position'),
                     child: IgnorePointer(

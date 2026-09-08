@@ -16,6 +16,7 @@ void main() {
   });
   tearDown(Get.reset);
   predictiveBackTests();
+  interruptedEntryTests();
   for (final preserveChildHeroes in [false, true]) {
     testWidgets(
       'return content handoff (nested Heroes: $preserveChildHeroes)',
@@ -173,6 +174,66 @@ void main() {
         expect(Get.isRegistered<_PlaybackProbeController>(), isFalse);
       },
     );
+  }
+}
+
+void interruptedEntryTests() {
+  for (final delay in [16, 120, 280, 500]) {
+    for (final nested in [false, true]) {
+      testWidgets('return during entry at ${delay}ms (nested: $nested)', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          GetMaterialApp(
+            navigatorObservers: [routeObserver],
+            home: _SourcePage(preserveChildHeroes: nested),
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('video-card')));
+        await tester.pump();
+        await tester.pump(Duration(milliseconds: delay));
+        final route = Get.routing.route as VideoPageTransitionRoute<void>;
+        final flight = find.byKey(const ValueKey('video-transition-flight'));
+        final page = find.byKey(
+          const ValueKey('video-transition-page-container'),
+        );
+        var previous = tester.getRect(flight);
+        var previousOpacity = _pageOpacity(tester);
+        route.navigator!.pop();
+        await tester.pump();
+        while (flight.evaluate().isNotEmpty) {
+          final rect = tester.getRect(flight);
+          expect(rect.width, lessThanOrEqualTo(previous.width + 0.001));
+          expect(rect.height, lessThanOrEqualTo(previous.height + 0.001));
+          final clip = tester
+              .widget<ClipRRect>(page)
+              .clipper!
+              .getClip(tester.getSize(page))
+              .outerRect
+              .shift(tester.getTopLeft(page));
+          expect(clip.left, closeTo(rect.left, 0.001));
+          expect(clip.top, closeTo(rect.top, 0.001));
+          expect(clip.width, closeTo(rect.width, 0.001));
+          expect(clip.height, closeTo(rect.height, 0.001));
+          expect(_pageOpacity(tester), lessThanOrEqualTo(previousOpacity));
+          expect(
+            find.byKey(const ValueKey('video-transition-return-card')),
+            findsNothing,
+          );
+          expect(
+            find.byKey(const ValueKey('video-transition-dim')),
+            findsNothing,
+          );
+          previous = rect;
+          previousOpacity = _pageOpacity(tester);
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        await tester.pumpAndSettle();
+        expect(Get.isRegistered<_PlaybackProbeController>(), isFalse);
+        expect(find.byKey(const ValueKey('video-card')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
   }
 }
 
