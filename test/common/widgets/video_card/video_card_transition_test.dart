@@ -50,12 +50,44 @@ void main() {
         home: const _SourcePage(),
       ),
     );
+    final initial = tester.getRect(find.byKey(const ValueKey('video-card')));
     await tester.tap(find.byKey(const ValueKey('video-card')));
     await tester.pump();
     final frames = <List<double>>[];
     for (var step = 1; step <= 9; step++) {
-      await tester.pump(videoPageTransitionDuration ~/ 10);
-      frames.add(_frame(tester));
+      if (step == 1) {
+        await tester.pump(const Duration(milliseconds: 16));
+        final firstFrame = _frame(tester);
+        expect(firstFrame[2], greaterThan(initial.width + 1));
+        expect(firstFrame[3], greaterThan(initial.height + 1));
+        expect(firstFrame[6], greaterThan(0));
+        await tester.pump(
+          videoPageTransitionDuration ~/ 10 - const Duration(milliseconds: 16),
+        );
+      } else {
+        await tester.pump(videoPageTransitionDuration ~/ 10);
+      }
+      final frame = _frame(tester);
+      expect(
+        frame[2],
+        greaterThanOrEqualTo(frames.isEmpty ? initial.width : frames.last[2]),
+      );
+      expect(
+        frame[6],
+        greaterThanOrEqualTo(frames.isEmpty ? 0.0 : frames.last[6]),
+      );
+      if (step >= 7) {
+        // No clear-background flash at full screen or during page reveal.
+        expect(frame[6], 1);
+        expect(
+          frame[2],
+          closeTo(
+            tester.view.physicalSize.width / tester.view.devicePixelRatio + 144,
+            0.001,
+          ),
+        );
+      }
+      frames.add(frame);
       expect(tester.takeException(), isNull);
     }
     expect(find.byType(BackdropFilter), findsNothing);
@@ -81,8 +113,8 @@ void main() {
           reason: 'progress ${1 - step / 10}, field $field',
         );
       }
-      if (step >= 7) {
-        expect(_opacity(tester, 'video-transition-backdrop'), 0);
+      if (step == 9) {
+        expect(_opacity(tester, 'video-transition-backdrop'), lessThan(0.2));
       }
       expect(tester.takeException(), isNull);
     }

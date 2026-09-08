@@ -10,7 +10,7 @@ import 'package:material_ui/material_ui.dart';
 
 const double _cardRadius = 12;
 const double _pageRadius = 72;
-const double _expansionEnd = 0.72;
+const Curve _containerCurve = Interval(0, 0.66, curve: Curves.easeOutCubic);
 const double _surfaceFadeInStart = 0.66;
 const double _surfaceFadeInEnd = 0.80;
 const double _heroSurfaceFadeOutStart = 0.72;
@@ -59,14 +59,9 @@ void _captureVideoTransitionBackground(Object tag) {
   _pendingVideoTransition = _CapturedVideoTransition(tag: tag, image: image);
 }
 
-double _expansionProgress(double value) => Curves.easeInOutCubic.transform(
-  (value / _expansionEnd).clamp(0.0, 1.0),
-);
-
-// Express the previous return flight in card-to-page coordinates. Both flights
-// now evaluate this same function; Hero itself must not apply another curve.
-double _containerProgress(double value) =>
-    1 - _expansionProgress(1 - Curves.fastOutSlowIn.flipped.transform(value));
+// Start moving on the first frame and cover the viewport before page reveal.
+// Both directions evaluate the same curve without Hero applying another curve.
+double _containerProgress(double value) => _containerCurve.transform(value);
 
 class _VideoCardRectTween extends RectTween {
   _VideoCardRectTween({
@@ -225,32 +220,11 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
     final routeAnimation = _routeAnimation;
     final backdropOpacity = routeAnimation == null
         ? null
-        : TweenSequence<double>([
-            TweenSequenceItem(
-              tween: ConstantTween(0),
-              weight: 32,
-            ),
-            TweenSequenceItem(
-              tween: Tween(begin: 0.0, end: 1.0).chain(
-                CurveTween(curve: Curves.easeOutCubic),
-              ),
-              weight: 18,
-            ),
-            TweenSequenceItem(
-              tween: ConstantTween(1),
-              weight: 8,
-            ),
-            TweenSequenceItem(
-              tween: Tween(begin: 1.0, end: 0.0).chain(
-                CurveTween(curve: Curves.easeInOutCubic),
-              ),
-              weight: 18,
-            ),
-            TweenSequenceItem(
-              tween: ConstantTween(0),
-              weight: 24,
-            ),
-          ]).animate(routeAnimation);
+        // Track expansion, not a separate pulse: the opaque page hides this
+        // layer at full screen. Squaring makes the return tail clear sooner.
+        : CurveTween(curve: Curves.easeInQuad)
+              .chain(CurveTween(curve: _containerCurve))
+              .animate(routeAnimation);
     final pageSurfaceOpacity = routeAnimation == null
         ? null
         : CurveTween(
