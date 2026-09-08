@@ -22,7 +22,7 @@ class BottomControl extends StatelessWidget {
   final double maxWidth;
   final bool isFullScreen;
   final PlPlayerController controller;
-  final ValueGetter<Widget> buildBottomControl;
+  final Widget Function(Widget progress) buildBottomControl;
   final VideoDetailController videoDetailController;
 
   void onDragStart(ThumbDragDetails duration) {
@@ -53,71 +53,76 @@ class BottomControl extends StatelessWidget {
     final bufferedBarColor = primary.withValues(alpha: 0.4);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
-            child: Obx(
-              () => Offstage(
-                offstage: !controller.showControls.value,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.bottomCenter,
-                  children: [
-                    Obx(
-                      () => ProgressBar(
-                        progress: controller.progress,
-                        buffered: controller.buffered.value,
-                        total: controller.duration.value,
-                        progressBarColor: primary,
-                        baseBarColor: const Color(0x33FFFFFF),
-                        bufferedBarColor: bufferedBarColor,
-                        thumbColor: primary,
-                        thumbGlowColor: thumbGlowColor,
-                        barHeight: 3.5,
-                        thumbRadius: 7,
-                        thumbGlowRadius: 25,
-                        onDragStart: onDragStart,
-                        onDragUpdate: onDragUpdate,
-                        onSeek: onSeek,
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      child: buildBottomControl(
+        Obx(
+          () => Offstage(
+            offstage: !controller.showControls.value,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.bottomCenter,
+              children: [
+                Obx(
+                  () => ProgressBar(
+                    progress: controller.progress,
+                    buffered: controller.buffered.value,
+                    total: controller.duration.value,
+                    progressBarColor: primary,
+                    baseBarColor: const Color(0x33FFFFFF),
+                    bufferedBarColor: bufferedBarColor,
+                    thumbColor: primary,
+                    thumbGlowColor: thumbGlowColor,
+                    barHeight: 3.5,
+                    thumbRadius: 7,
+                    thumbGlowRadius: 18,
+                    onDragStart: onDragStart,
+                    onDragUpdate: onDragUpdate,
+                    onSeek: onSeek,
+                  ),
+                ),
+                if (controller.enableBlock &&
+                    videoDetailController.segmentProgressList.isNotEmpty)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 5.25,
+                    child: SegmentProgressBar(
+                      segments: videoDetailController.segmentProgressList,
+                    ),
+                  ),
+                if (controller.showViewPoints &&
+                    videoDetailController.viewPointList.isNotEmpty &&
+                    videoDetailController.showVP.value)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 8.75,
+                    child: ViewPointSegmentProgressBar(
+                      segments: videoDetailController.viewPointList,
+                      onSeek: PlatformUtils.isDesktop
+                          ? (position) =>
+                                controller.seekTo(position, isSeek: false)
+                          : null,
+                    ),
+                  ),
+                if (videoDetailController.showDmTrendChart.value)
+                  if (videoDetailController.dmTrend.value?.dataOrNull
+                      case final list?)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: buildDmChart(
+                        primary,
+                        list,
+                        videoDetailController,
+                        4.5,
                       ),
                     ),
-                    if (controller.enableBlock &&
-                        videoDetailController.segmentProgressList.isNotEmpty)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 5.25,
-                        child: SegmentProgressBar(
-                          segments: videoDetailController.segmentProgressList,
-                        ),
-                      ),
-                    if (controller.showViewPoints &&
-                        videoDetailController.viewPointList.isNotEmpty &&
-                        videoDetailController.showVP.value)
-                      Padding(
-                        padding: const .only(bottom: 8.75),
-                        child: ViewPointSegmentProgressBar(
-                          segments: videoDetailController.viewPointList,
-                          onSeek: PlatformUtils.isDesktop
-                              ? (position) =>
-                                    controller.seekTo(position, isSeek: false)
-                              : null,
-                        ),
-                      ),
-                    if (videoDetailController.showDmTrendChart.value)
-                      if (videoDetailController.dmTrend.value?.dataOrNull
-                          case final list?)
-                        buildDmChart(primary, list, videoDetailController, 4.5),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
-          buildBottomControl(),
-        ],
+        ),
       ),
     );
   }
