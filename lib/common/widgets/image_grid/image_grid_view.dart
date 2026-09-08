@@ -19,6 +19,7 @@ import 'dart:io' show Platform;
 
 import 'package:PiliPlus/common/assets.dart';
 import 'package:PiliPlus/common/style.dart';
+import 'package:PiliPlus/common/widgets/native_feedback.dart';
 import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/image_grid/image_grid_builder.dart';
@@ -143,9 +144,33 @@ class ImageGridView extends StatelessWidget {
 
   static bool enableImgMenu = Pref.enableImgMenu;
 
-  void _showMenu(BuildContext context, int index, Offset offset) {
+  Future<void> _showMenu(BuildContext context, int index, Offset offset) async {
     HapticFeedback.mediumImpact();
     final item = picArr[index];
+    if (await showNativeActionMenu(context, [
+          (label: '分享', onSelected: () => ImageUtils.onShareImg(item.url)),
+          (label: '保存图片', onSelected: () => ImageUtils.downloadImg([item.url])),
+          if (picArr.length > 1)
+            (
+              label: '保存全部',
+              onSelected: () => ImageUtils.downloadImg(
+                picArr.map((item) => item.url).toList(),
+              ),
+            ),
+          if (item.isLivePhoto)
+            (
+              label: '保存视频',
+              onSelected: () => ImageUtils.downloadLivePhoto(
+                url: item.url,
+                liveUrl: item.liveUrl!,
+                width: item.width.toInt(),
+                height: item.height.toInt(),
+              ),
+            ),
+        ]) ||
+        !context.mounted) {
+      return;
+    }
     showMenu(
       context: context,
       position: PageUtils.menuPosition(offset),

@@ -4,6 +4,7 @@ import 'package:PiliPlus/build_config.dart';
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/back_detector.dart';
 import 'package:PiliPlus/common/widgets/custom_toast.dart';
+import 'package:PiliPlus/common/widgets/native_feedback.dart';
 import 'package:PiliPlus/common/widgets/native_navigation_occlusion.dart';
 import 'package:PiliPlus/common/widgets/route_aware_mixin.dart';
 import 'package:PiliPlus/common/widgets/scale_app.dart';
@@ -269,8 +270,11 @@ class MyApp extends StatelessWidget {
       getPages: Routes.getPages,
       defaultTransition: Pref.pageTransition,
       builder: FlutterSmartDialog.init(
-        toastBuilder: (msg) =>
-            NativeNavigationForeground(child: CustomToast(msg)),
+        toastBuilder: (msg) => NativeTextToast(
+          key: ValueKey(msg),
+          message: msg,
+          fallback: (_) => CustomToast(msg),
+        ),
         loadingBuilder: (msg) =>
             NativeNavigationForeground(child: LoadingWidget(msg)),
         notifyStyle: FlutterSmartNotifyStyle(

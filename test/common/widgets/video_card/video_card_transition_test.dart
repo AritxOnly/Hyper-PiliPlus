@@ -4,19 +4,61 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
-double _pageOpacity(WidgetTester tester) => tester
-    .widget<FadeTransition>(find.byKey(const ValueKey('video-transition-page')))
-    .opacity
-    .value;
+double _pageOpacity(WidgetTester tester) =>
+    (1 -
+        tester
+            .widget<ColoredBox>(
+              find.byKey(const ValueKey('video-transition-page-veil')),
+            )
+            .color
+            .a) *
+    tester
+        .widget<FadeTransition>(
+          find.byKey(const ValueKey('video-transition-page')),
+        )
+        .opacity
+        .value;
 
 void main() {
   setUp(() {
     _PlaybackProbeController.creations = 0;
     _ContentProbeState.creations = 0;
+    _PaintProbe.paints = 0;
   });
   tearDown(Get.reset);
   predictiveBackTests();
   interruptedEntryTests();
+  for (final cancel in [false, true]) {
+    testWidgets(
+      'entry readiness ignores offstage measurement; cancel=$cancel',
+      (tester) async {
+        await tester.pumpWidget(
+          GetMaterialApp(
+            navigatorObservers: [routeObserver],
+            home: const _SourcePage(preserveChildHeroes: false),
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('video-card')));
+        await tester.pump();
+        bool? ready;
+        final pending = waitForVideoPageEntry('video-card-transition-test')
+            .then((value) => ready = value);
+        await tester.pump(const Duration(milliseconds: 32));
+        expect(ready, isNull);
+        expect(_pageOpacity(tester), 0);
+        expect(_PaintProbe.paints, greaterThan(0));
+        if (cancel) Navigator.of(tester.element(find.text('播放页'))).pop();
+        await tester.pumpAndSettle();
+        await pending;
+        expect(ready, !cancel);
+        await tester.pumpWidget(const SizedBox.shrink());
+        expect(
+          await waitForVideoPageEntry('video-card-transition-test'),
+          isTrue,
+        );
+      },
+    );
+  }
   for (final preserveChildHeroes in [false, true]) {
     testWidgets(
       'return content handoff (nested Heroes: $preserveChildHeroes)',
@@ -380,6 +422,21 @@ class _ContentProbeState extends State<_ContentProbe> {
   }
 
   @override
-  Widget build(BuildContext context) =>
-      const Scaffold(body: Center(child: Text('播放页')));
+  Widget build(BuildContext context) => Scaffold(
+    body: CustomPaint(
+      painter: _PaintProbe(),
+      child: const Center(child: Text('播放页')),
+    ),
+  );
+}
+
+class _PaintProbe extends CustomPainter {
+  static int paints = 0;
+  @override
+  void paint(Canvas canvas, Size size) {
+    paints++;
+  }
+
+  @override
+  bool shouldRepaint(_PaintProbe oldDelegate) => false;
 }

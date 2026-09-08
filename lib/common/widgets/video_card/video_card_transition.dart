@@ -1,4 +1,4 @@
-import 'dart:async' show unawaited;
+import 'dart:async' show Completer, unawaited;
 import 'dart:ui' as ui show lerpDouble;
 
 import 'package:PiliPlus/utils/android/android_helper.dart';
@@ -14,6 +14,11 @@ const Curve _revealCurve = Interval(0.42, 0.66, curve: Curves.easeInOutCubic);
 const Duration videoPageTransitionDuration = Duration(milliseconds: 560);
 const Duration videoPageReverseTransitionDuration = Duration(milliseconds: 500);
 ({Object tag, RenderBox box, BuildContext context})? _pendingVideoTransition;
+final _enteringVideoPages = <Object, Completer<bool>>{};
+
+/// Fetch data immediately, but avoid creating a decoder during the card flight.
+Future<bool> waitForVideoPageEntry(Object? tag) async =>
+    await _enteringVideoPages[tag]?.future ?? true;
 
 /// For transparent cards, use the actual painted ancestor rather than a
 /// hard-coded surface role. Opaque cards pass their own Material color.
@@ -83,6 +88,31 @@ class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
 
   bool _gestureCommitted = false;
   AnimationStatusListener? _gestureCompletion;
+  final _entryReady = Completer<bool>();
+  Object? get _entryTag => (settings.arguments as Map?)?['heroTag'];
+
+  @override
+  void install() {
+    super.install();
+    if (_entryTag case final tag?) _enteringVideoPages[tag] = _entryReady;
+    // Listen to the real controller, not Hero's offstage proxy animation.
+    controller?.addStatusListener(_entryStatus);
+  }
+
+  void _entryStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) _finishEntry(true);
+  }
+
+  void _finishEntry(bool entered) {
+    if (!_entryReady.isCompleted) _entryReady.complete(entered);
+  }
+
+  @override
+  bool didPop(T? result) {
+    final popped = super.didPop(result);
+    if (popped) _finishEntry(false);
+    return popped;
+  }
 
   @override
   void handleStartBackGesture({double progress = 0.0}) {
@@ -122,6 +152,11 @@ class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
 
   @override
   void dispose() {
+    _finishEntry(false);
+    controller?.removeStatusListener(_entryStatus);
+    if (identical(_enteringVideoPages[_entryTag], _entryReady)) {
+      _enteringVideoPages.remove(_entryTag);
+    }
     if (_gestureCompletion case final listener?) {
       controller?.removeStatusListener(listener);
     }
@@ -361,8 +396,26 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
                             key: const ValueKey('video-transition-page'),
                             opacity: returning
                                 ? AlwaysStoppedAnimation(returnOpacity)
-                                : reveal,
-                            child: RepaintBoundary(child: child),
+                                : const AlwaysStoppedAnimation(1),
+                            // Paint the page from the first frame. A simple
+                            // surface veil reveals it without bringing a whole
+                            // page opacity layer online halfway through entry.
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                RepaintBoundary(child: child),
+                                IgnorePointer(
+                                  child: ColoredBox(
+                                    key: const ValueKey(
+                                      'video-transition-page-veil',
+                                    ),
+                                    color: surfaceColor.withValues(
+                                      alpha: returning ? 0 : 1 - reveal.value,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

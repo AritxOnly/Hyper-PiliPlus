@@ -18,6 +18,7 @@
 import 'dart:io' show File, Platform;
 
 import 'package:PiliPlus/common/widgets/colored_box_transition.dart';
+import 'package:PiliPlus/common/widgets/native_feedback.dart';
 import 'package:PiliPlus/common/widgets/dialog/simple_dialog_option.dart';
 import 'package:PiliPlus/common/widgets/gesture/image_horizontal_drag_gesture_recognizer.dart';
 import 'package:PiliPlus/common/widgets/image_viewer/image.dart';
@@ -533,10 +534,35 @@ class _GalleryViewerState extends State<GalleryViewer>
     );
   }
 
-  void _onLongPress() {
+  Future<void> _onLongPress() async {
     final item = widget.sources[_currIndex.value];
     if (item.sourceType == .fileImage) return;
     HapticFeedback.mediumImpact();
+    if (await showNativeActionMenu(context, [
+          (label: '分享', onSelected: () => ImageUtils.onShareImg(item.url)),
+          (label: '复制链接', onSelected: () => Utils.copyText(item.url)),
+          (label: '保存图片', onSelected: () => ImageUtils.downloadImg([item.url])),
+          if (widget.sources.length > 1)
+            (
+              label: '保存全部图片',
+              onSelected: () => ImageUtils.downloadImg(
+                widget.sources.map((item) => item.url).toList(),
+              ),
+            ),
+          if (item.sourceType == SourceType.livePhoto)
+            (
+              label: '保存视频',
+              onSelected: () => ImageUtils.downloadLivePhoto(
+                url: item.url,
+                liveUrl: item.liveUrl!,
+                width: item.width!,
+                height: item.height!,
+              ),
+            ),
+        ]) ||
+        !mounted) {
+      return;
+    }
     showDialog(
       context: context,
       builder: (context) => SimpleDialog(
