@@ -9,6 +9,10 @@ import 'package:material_ui/material_ui.dart';
 
 const double _cardRadius = 12;
 const double _pageRadius = 72;
+final ImageFilter _backgroundBlurFilter = ImageFilter.blur(
+  sigmaX: 8,
+  sigmaY: 8,
+);
 
 /// A video card that grows into the complete playback page.
 class VideoCardHero extends StatelessWidget {
@@ -97,44 +101,56 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
   @override
   Widget build(BuildContext context) {
     final routeAnimation = _routeAnimation;
+    final pageOpacity = routeAnimation == null
+        ? null
+        : CurvedAnimation(
+            parent: routeAnimation,
+            curve: const Interval(0.22, 1, curve: Curves.easeOutCubic),
+          );
+    final backdropOpacity = routeAnimation == null
+        ? null
+        : TweenSequence<double>([
+            TweenSequenceItem(
+              tween: Tween(begin: 0.0, end: 1.0).chain(
+                CurveTween(curve: Curves.easeOutCubic),
+              ),
+              weight: 42,
+            ),
+            TweenSequenceItem(
+              tween: Tween(begin: 1.0, end: 0.0).chain(
+                CurveTween(curve: Curves.easeInCubic),
+              ),
+              weight: 58,
+            ),
+          ]).animate(routeAnimation);
     return Stack(
       fit: .expand,
       clipBehavior: .none,
       children: [
+        if (backdropOpacity != null)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: FadeTransition(
+                key: const ValueKey('video-transition-backdrop'),
+                opacity: backdropOpacity,
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: _backgroundBlurFilter,
+                    child: ColoredBox(
+                      color: Colors.black.withValues(alpha: 0.035),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         if (routeAnimation == null)
           widget.child
         else
           FadeTransition(
-            opacity: CurvedAnimation(
-              parent: routeAnimation,
-              curve: const Interval(0.18, 1, curve: Curves.easeOutCubic),
-            ),
+            key: const ValueKey('video-transition-page'),
+            opacity: pageOpacity!,
             child: widget.child,
-          ),
-        if (routeAnimation != null)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: AnimatedBuilder(
-                animation: routeAnimation,
-                builder: (context, child) {
-                  final pulse = sin(pi * routeAnimation.value);
-                  if (pulse <= 0.001) {
-                    return const SizedBox.shrink();
-                  }
-                  return ClipRect(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(
-                        sigmaX: 12 * pulse,
-                        sigmaY: 12 * pulse,
-                      ),
-                      child: ColoredBox(
-                        color: Colors.black.withValues(alpha: 0.05 * pulse),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
           ),
         Positioned(
           left: -_pageRadius,
@@ -195,12 +211,13 @@ Widget _buildFlightShuttle(
     builder: (context, child) {
       final progress = Curves.easeInOutCubic.transform(animation.value);
       final radius = lerpDouble(_cardRadius, _pageRadius, progress)!;
+      final surfaceOpacity = 0.84 * sin(pi * progress);
       final cardOpacity =
           1 -
           const Interval(
-            0.28,
+            0.10,
             0.82,
-            curve: Curves.easeOutCubic,
+            curve: Curves.easeInOutCubic,
           ).transform(progress);
 
       return ClipRRect(
@@ -209,11 +226,7 @@ Widget _buildFlightShuttle(
           fit: .expand,
           children: [
             ColoredBox(
-              color: Color.lerp(
-                Colors.transparent,
-                pageSurface.color,
-                progress,
-              )!,
+              color: pageSurface.color.withValues(alpha: surfaceOpacity),
             ),
             if (cardOpacity > 0)
               Opacity(

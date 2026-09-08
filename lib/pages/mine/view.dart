@@ -68,36 +68,65 @@ class _MediaPageState extends CommonPageState<MinePage>
     super.build(context);
     final theme = Theme.of(context);
     final secondary = theme.colorScheme.secondary;
-    return Column(
-      children: [
-        Padding(
-          padding: const .symmetric(vertical: 10),
-          child: _buildHeaderActions,
-        ),
-        Expanded(
-          child: Material(
-            type: .transparency,
-            child: refreshIndicator(
-              onRefresh: controller.onRefresh,
-              child: onBuild(
-                ListView(
-                  padding: const .only(bottom: 100),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [
-                    _buildUserInfo(theme, secondary),
-                    _buildActions(secondary),
-                    Obx(
-                      () => controller.loadingState.value is Loading
-                          ? const SizedBox.shrink()
-                          : _buildFav(theme, secondary),
-                    ),
-                  ],
+    return ColoredBox(
+      color: theme.colorScheme.surface,
+      child: Column(
+        children: [
+          Padding(
+            padding: const .symmetric(vertical: 10),
+            child: _buildHeaderActions,
+          ),
+          Expanded(
+            child: Material(
+              type: .transparency,
+              child: refreshIndicator(
+                onRefresh: controller.onRefresh,
+                child: onBuild(
+                  ListView(
+                    padding: const .only(bottom: 100),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      _sectionCard(
+                        theme,
+                        padding: const .symmetric(vertical: 12),
+                        child: _buildUserInfo(theme, secondary),
+                      ),
+                      _sectionCard(
+                        theme,
+                        padding: const .symmetric(vertical: 4),
+                        child: _buildActions(secondary),
+                      ),
+                      Obx(
+                        () => controller.loadingState.value is Loading
+                            ? const SizedBox.shrink()
+                            : _sectionCard(
+                                theme,
+                                child: _buildFav(theme, secondary),
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionCard(
+    ThemeData theme, {
+    required Widget child,
+    EdgeInsetsGeometry padding = EdgeInsets.zero,
+  }) {
+    return Card(
+      margin: const .symmetric(horizontal: 8, vertical: 4),
+      color: theme.colorScheme.surfaceContainer,
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      semanticContainer: false,
+      child: Padding(padding: padding, child: child),
     );
   }
 
@@ -447,10 +476,6 @@ class _MediaPageState extends CommonPageState<MinePage>
   Widget _buildFav(ThemeData theme, Color secondary) {
     return Column(
       children: [
-        Divider(
-          height: 20,
-          color: theme.dividerColor.withValues(alpha: 0.1),
-        ),
         ListTile(
           onTap: () => Get.toNamed('/fav')?.whenComplete(_autoRefresh),
           dense: true,

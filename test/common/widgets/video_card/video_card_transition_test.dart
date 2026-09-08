@@ -13,6 +13,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 150));
 
     expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('video-transition-page')),
+          )
+          .opacity
+          .value,
+      inExclusiveRange(0, 1),
+    );
     expect(tester.takeException(), isNull);
 
     await tester.pumpAndSettle();
@@ -21,6 +30,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 150));
 
     expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(
+      tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('video-transition-page')),
+          )
+          .opacity
+          .value,
+      inExclusiveRange(0, 1),
+    );
     expect(tester.takeException(), isNull);
 
     await tester.pumpAndSettle();
