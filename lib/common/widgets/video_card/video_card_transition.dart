@@ -81,6 +81,53 @@ class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
   VideoPageTransitionRoute({required WidgetBuilder builder, super.settings})
     : super(page: () => Builder(builder: builder));
 
+  bool _gestureCommitted = false;
+  AnimationStatusListener? _gestureCompletion;
+
+  @override
+  void handleStartBackGesture({double progress = 0.0}) {
+    _gestureCommitted = false;
+    super.handleStartBackGesture(progress: progress);
+  }
+
+  @override
+  void handleCommitBackGesture() {
+    if (_gestureCommitted || !popGestureInProgress) return;
+    _gestureCommitted = true;
+    final owner = navigator;
+    if (isCurrent) owner?.pop();
+    // didPop already reverses from the current progress. The SDK's default
+    // commit restarts reverse(from: upperBound), replaying our visible shrink.
+    final animationController = controller;
+    void finish() {
+      if (_gestureCompletion case final listener?) {
+        animationController?.removeStatusListener(listener);
+        _gestureCompletion = null;
+      }
+      if (owner?.userGestureInProgress == true) owner!.didStopUserGesture();
+    }
+
+    if (animationController?.isAnimating ?? false) {
+      _gestureCompletion = (status) {
+        if (status == AnimationStatus.dismissed ||
+            status == AnimationStatus.completed) {
+          finish();
+        }
+      };
+      animationController!.addStatusListener(_gestureCompletion!);
+    } else {
+      finish();
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_gestureCompletion case final listener?) {
+      controller?.removeStatusListener(listener);
+    }
+    super.dispose();
+  }
+
   @override
   Duration get transitionDuration => videoPageTransitionDuration;
 
@@ -237,7 +284,11 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
           animation: animation,
           child: widget.child,
           builder: (context, child) {
-            final returning = animation.status == AnimationStatus.reverse;
+            // Interactive updates can report "forward" even while their value
+            // decreases. Keep the return composition until the gesture settles.
+            final returning =
+                animation.status == AnimationStatus.reverse ||
+                (ModalRoute.of(context)?.popGestureInProgress ?? false);
             final box = context.findRenderObject();
             final origin = box is RenderBox && box.hasSize
                 ? box.localToGlobal(Offset.zero)

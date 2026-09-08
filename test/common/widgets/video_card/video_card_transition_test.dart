@@ -15,6 +15,7 @@ void main() {
     _ContentProbeState.creations = 0;
   });
   tearDown(Get.reset);
+  predictiveBackTests();
   for (final preserveChildHeroes in [false, true]) {
     testWidgets(
       'return content handoff (nested Heroes: $preserveChildHeroes)',
@@ -172,6 +173,65 @@ void main() {
         expect(Get.isRegistered<_PlaybackProbeController>(), isFalse);
       },
     );
+  }
+}
+
+void predictiveBackTests() {
+  for (final cancel in [false, true]) {
+    testWidgets('predictive back continues once (cancel: $cancel)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        GetMaterialApp(
+          navigatorObservers: [routeObserver],
+          home: const _SourcePage(preserveChildHeroes: false),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('video-card')));
+      await tester.pumpAndSettle();
+      final route = Get.routing.route as VideoPageTransitionRoute<void>;
+      final owner = route.navigator!;
+      final page = find.byKey(
+        const ValueKey('video-transition-page-container'),
+      );
+      final full = tester.getRect(page);
+      route
+        ..handleStartBackGesture(progress: 1)
+        ..handleUpdateBackGestureProgress(progress: 0.55);
+      await tester.pump();
+      final dragged = tester.getRect(page);
+      expect(dragged.width, lessThan(full.width));
+      expect(find.byKey(const ValueKey('video-transition-dim')), findsNothing);
+      if (cancel) {
+        route.handleCancelBackGesture();
+        await tester.pumpAndSettle();
+        expect(route.isCurrent, isTrue);
+        expect(owner.userGestureInProgress, isFalse);
+        expect(tester.getRect(page), full);
+        expect(_pageOpacity(tester), 1);
+        // Cancelling must not prevent a later, successful gesture.
+        route
+          ..handleStartBackGesture(progress: 1)
+          ..handleUpdateBackGestureProgress(progress: 0.55);
+        await tester.pump();
+      }
+      route.handleCommitBackGesture();
+      expect(route.animation!.value, closeTo(0.55, 0.001));
+      route.handleCommitBackGesture(); // repeated platform callback is ignored
+      await tester.pump();
+      var previousWidth = dragged.width;
+      for (var i = 0; i < 5; i++) {
+        await tester.pump(const Duration(milliseconds: 30));
+        final width = tester.getRect(page).width;
+        expect(width, lessThanOrEqualTo(previousWidth));
+        previousWidth = width;
+      }
+      await tester.pumpAndSettle();
+      expect(owner.userGestureInProgress, isFalse);
+      expect(find.byKey(const ValueKey('video-card')), findsOneWidget);
+      expect(Get.isRegistered<_PlaybackProbeController>(), isFalse);
+      expect(tester.takeException(), isNull);
+    });
   }
 }
 
