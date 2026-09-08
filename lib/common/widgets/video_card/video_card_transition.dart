@@ -13,7 +13,10 @@ const Curve _containerCurve = Interval(0, 0.66, curve: Curves.easeOutCubic);
 const Curve _revealCurve = Interval(0.42, 0.66, curve: Curves.easeInOutCubic);
 const Duration videoPageTransitionDuration = Duration(milliseconds: 560);
 const Duration videoPageReverseTransitionDuration = Duration(milliseconds: 500);
-({Object tag, RenderBox box})? _pendingVideoTransition;
+({Object tag, RenderBox box, Color color})? _pendingVideoTransition;
+
+Color _transitionSurface(Color card, Color page, double expansion) =>
+    Color.lerp(card, page, expansion)!;
 
 bool hasPendingVideoCardTransition(Object tag) =>
     _pendingVideoTransition?.tag == tag;
@@ -22,7 +25,11 @@ bool hasPendingVideoCardTransition(Object tag) =>
 void _prepareVideoTransition(Object tag, BuildContext context) {
   final box = context.findRenderObject();
   if (box is RenderBox && box.hasSize) {
-    _pendingVideoTransition = (tag: tag, box: box);
+    _pendingVideoTransition = (
+      tag: tag,
+      box: box,
+      color: Theme.of(context).colorScheme.surfaceContainer,
+    );
   }
 }
 
@@ -101,6 +108,7 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
   Animation<double>? _routeAnimation;
   RenderBox? _sourceBox;
   Rect? _sourceRect;
+  Color? _sourceColor;
   bool _samplingPaused = false;
 
   @override
@@ -108,6 +116,7 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
     super.initState();
     if (hasPendingVideoCardTransition(widget.tag)) {
       _sourceBox = _pendingVideoTransition!.box;
+      _sourceColor = _pendingVideoTransition!.color;
       _sourceRect = _sourceBox!.localToGlobal(Offset.zero) & _sourceBox!.size;
       _pendingVideoTransition = null;
     }
@@ -176,6 +185,15 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
             final contraction = Curves.easeInOutCubic.transform(
               1 - animation.value,
             );
+            // Fade with the actual shrink, never before movement starts.
+            // A stronger ease-out makes return content disappear earlier.
+            final returnOpacity =
+                1 - Curves.easeOutCubic.transform(contraction);
+            final surfaceColor = _transitionSurface(
+              _sourceColor!,
+              widget.surfaceColor,
+              returning ? 1 - contraction : expansion,
+            );
             final pageRect = returning
                 ? Rect.lerp(viewport, source, contraction)!
                 : viewport;
@@ -206,10 +224,10 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
                     key: const ValueKey('video-transition-page-container'),
                     clipper: _PageClipper(clipRect, radius),
                     child: ColoredBox(
-                      // Opaque underlay prevents a gap during the Hero handoff.
-                      color: returning || animation.value >= 0.42
-                          ? widget.surfaceColor
-                          : Colors.transparent,
+                      key: const ValueKey('video-transition-surface'),
+                      // Keep the interpolated surface underneath fading content
+                      // and match the Hero color throughout the entry handoff.
+                      color: surfaceColor,
                       child: FittedBox(
                         fit: BoxFit.fill,
                         child: SizedBox.fromSize(
@@ -217,7 +235,7 @@ class _VideoPageHeroTargetState extends State<VideoPageHeroTarget> {
                           child: FadeTransition(
                             key: const ValueKey('video-transition-page'),
                             opacity: returning
-                                ? kAlwaysCompleteAnimation
+                                ? AlwaysStoppedAnimation(returnOpacity)
                                 : reveal,
                             child: RepaintBoundary(child: child),
                           ),
@@ -316,7 +334,12 @@ Widget _buildFlightShuttle(
             fit: StackFit.expand,
             children: [
               ColoredBox(
-                color: Color.lerp(cardSurface, pageSurface.color, progress)!,
+                key: const ValueKey('video-transition-flight-surface'),
+                color: _transitionSurface(
+                  cardSurface,
+                  pageSurface.color,
+                  progress,
+                ),
               ),
               if (cardOpacity > 0)
                 Align(
