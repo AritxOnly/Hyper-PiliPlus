@@ -27,11 +27,9 @@ class _FontSettingPageState extends State<FontSettingPage> {
   AppFont _appFont = FontUtils.appFont;
   String? get _selectedFont => _appFont.fontFamily;
 
-  // ignore: deprecated_member_use
-  static final _normalFontWeight = FontWeight.normal.index;
+  static const _normalFontWeight = 350;
 
-  // ignore: deprecated_member_use
-  int _selectedWeight = Pref.appFontWeight.index;
+  int _selectedWeight = Pref.appFontWeight.value;
   double _selectedScale = Pref.defaultTextScale;
 
   final Map<String, Uint8List> _customFonts = {};
@@ -82,7 +80,7 @@ class _FontSettingPageState extends State<FontSettingPage> {
 
     await GStorage.setting.putAllNE({
       SettingBoxKey.appFont: _selectedFont,
-      SettingBoxKey.appFontWeightV2: _selectedWeight,
+      SettingBoxKey.appFontWeightValue: _selectedWeight,
       SettingBoxKey.defaultTextScale: _selectedScale,
     });
 
@@ -187,7 +185,7 @@ class _FontSettingPageState extends State<FontSettingPage> {
                   '注：部分字体可能无法应用',
                   style: TextStyle(
                     fontFamily: _selectedFont ?? '',
-                    fontWeight: .values[_selectedWeight],
+                    fontWeight: FontWeight(_selectedWeight),
                     fontSize: 14 * _selectedScale,
                   ),
                 ),
@@ -319,11 +317,11 @@ class _FontSettingPageState extends State<FontSettingPage> {
                           child: Slider(
                             padding: .zero,
                             value: _selectedWeight.toDouble(),
-                            min: 0,
-                            max: 8,
-                            divisions: 8,
+                            min: 100,
+                            max: 900,
+                            divisions: 16,
                             secondaryTrackValue: _normalFontWeight.toDouble(),
-                            label: 'w${(_selectedWeight + 1) * 100}',
+                            label: 'w$_selectedWeight',
                             onChanged: (value) {
                               setState(() => _selectedWeight = value.toInt());
                             },

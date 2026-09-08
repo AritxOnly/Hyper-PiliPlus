@@ -27,7 +27,8 @@ Widget dynTextMenuBuilder(
       ),
     );
   state.addLaunchMenuIfNeeded(buttonItems, index: 5);
-  return AdaptiveTextSelectionToolbar.buttonItems(
+  return NativeSelectionToolbar(
+    onDismiss: state.hideToolbar,
     buttonItems: buttonItems,
     anchors: state.contextMenuAnchors,
   );
@@ -89,23 +90,9 @@ void _showEmoteDialog(ModuleDynamicModel? moduleDynamic) {
   );
 }
 
-Future<void> _showTextDialog(String text) async {
-  final context = Get.context;
-  if (context == null) return;
-  if (await showNativeCopyDialog(
-        context,
-        text,
-        onMore: () => _showFlutterTextDialog(context, text),
-      ) ||
-      !context.mounted) {
-    return;
-  }
-  _showFlutterTextDialog(context, text);
-}
-
-void _showFlutterTextDialog(BuildContext context, String text) {
+void _showTextDialog(String text) {
   showDialog(
-    context: context,
+    context: Get.context!,
     builder: (context) => Dialog(
       child: Padding(
         padding: const .symmetric(horizontal: 20, vertical: 16),
@@ -126,7 +113,8 @@ void _showFlutterTextDialog(BuildContext context, String text) {
 Widget openUrlMenuBuilder(_, SelectableRegionState state) {
   final buttonItems = state.contextMenuButtonItems;
   state.addLaunchMenuIfNeeded(buttonItems, index: 3);
-  return AdaptiveTextSelectionToolbar.buttonItems(
+  return NativeSelectionToolbar(
+    onDismiss: state.hideToolbar,
     buttonItems: buttonItems,
     anchors: state.contextMenuAnchors,
   );

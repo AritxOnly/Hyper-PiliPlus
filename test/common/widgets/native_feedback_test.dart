@@ -99,66 +99,6 @@ void main() {
     variant: TargetPlatformVariant.only(TargetPlatform.android),
   );
 
-  for (final dark in [false, true]) {
-    for (final action in <String?>[null, 'more']) {
-      testWidgets(
-        'native copy preserves text and advanced actions: dark=$dark, action=$action',
-        (tester) async {
-          messenger.setMockMethodCallHandler(nativeFeedbackChannel, (
-            call,
-          ) async {
-            calls.add(call);
-            return action;
-          });
-          await tester.pumpWidget(
-            MaterialApp(
-              theme: dark ? ThemeData.dark() : ThemeData.light(),
-              home: const Text('page'),
-            ),
-          );
-          var more = 0;
-          const text = '中文🙂\nhttps://example.com\n[表情]';
-          expect(
-            await showNativeCopyDialog(
-              tester.element(find.text('page')),
-              text,
-              onMore: () => more++,
-            ),
-            isTrue,
-          );
-          expect(calls.single.method, 'showCopyText');
-          expect(calls.single.arguments, {
-            'text': text,
-            'dark': dark,
-            'more': true,
-          });
-          expect(more, action == 'more' ? 1 : 0);
-        },
-        variant: TargetPlatformVariant.only(TargetPlatform.android),
-      );
-    }
-  }
-
-  testWidgets('native copy falls back when unavailable', (tester) async {
-    messenger.setMockMethodCallHandler(nativeFeedbackChannel, (_) {
-      throw PlatformException(code: 'unavailable');
-    });
-    await tester.pumpWidget(const MaterialApp(home: Text('page')));
-    expect(
-      await showNativeCopyDialog(tester.element(find.text('page')), 'text'),
-      isFalse,
-    );
-  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
-
-  testWidgets('copy on iOS retains Flutter dialog', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: Text('page')));
-    expect(
-      await showNativeCopyDialog(tester.element(find.text('page')), 'text'),
-      isFalse,
-    );
-    expect(calls, isEmpty);
-  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
-
   for (final selection in <int?>[null, 0, 1, 99]) {
     testWidgets('native action selection $selection', (tester) async {
       messenger.setMockMethodCallHandler(nativeFeedbackChannel, (call) async {

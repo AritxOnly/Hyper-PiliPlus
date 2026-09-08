@@ -248,8 +248,8 @@ class _MediaPageState extends CommonPageState<MinePage>
 
   Widget _buildUserInfo(ThemeData theme, Color secondary) {
     const style = TextStyle(
-      fontSize: 22,
-      fontWeight: FontWeight.w600,
+      fontSize: 17,
+      fontWeight: FontWeight.w500,
     );
     final labelStyle = theme.textTheme.labelMedium!.copyWith(
       color: theme.colorScheme.outline,

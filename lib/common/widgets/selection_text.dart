@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:PiliPlus/common/widgets/native_selection_toolbar.dart';
 
 class SelectionText extends StatelessWidget {
   const SelectionText(
@@ -27,8 +28,10 @@ class SelectionText extends StatelessWidget {
     BuildContext context,
     SelectableRegionState selectableRegionState,
   ) {
-    return AdaptiveTextSelectionToolbar.selectableRegion(
-      selectableRegionState: selectableRegionState,
+    return NativeSelectionToolbar(
+      buttonItems: selectableRegionState.contextMenuButtonItems,
+      anchors: selectableRegionState.contextMenuAnchors,
+      onDismiss: selectableRegionState.hideToolbar,
     );
   }
 

@@ -9,30 +9,6 @@ const nativeFeedbackChannel = MethodChannel('hyper_piliplus/native_feedback');
 
 bool get _android => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-/// Native selectable text + system selection toolbar. Keep rich app-specific
-/// actions accessible without replacing them with plain-text approximations.
-Future<bool> showNativeCopyDialog(
-  BuildContext context,
-  String text, {
-  VoidCallback? onMore,
-}) async {
-  if (!_android) return false;
-  String? action;
-  try {
-    action = await nativeFeedbackChannel.invokeMethod<String>('showCopyText', {
-      'text': text,
-      'dark': Theme.of(context).brightness == Brightness.dark,
-      'more': onMore != null,
-    });
-  } on PlatformException {
-    return false;
-  } on MissingPluginException {
-    return false;
-  }
-  if (context.mounted && action == 'more') onMore?.call();
-  return true;
-}
-
 /// Returns false only when unsupported, allowing the original Flutter UI.
 Future<bool> showNativeActionMenu(
   BuildContext context,

@@ -566,13 +566,15 @@ abstract final class Pref {
   );
 
   static FontWeight get appFontWeight {
+    final int? precise = _setting.get(SettingBoxKey.appFontWeightValue);
+    if (precise != null) return FontWeight(precise.clamp(100, 900));
     // TODO: remove next 2 version
     const appFontWeightV1 = 'appFontWeight';
     final int? valV1 = _setting.get(appFontWeightV1);
     if (valV1 != null) {
       _setting.delete(appFontWeightV1);
       if (valV1 == -1) {
-        return .normal;
+        return const FontWeight(350);
       } else {
         _setting.put(SettingBoxKey.appFontWeightV2, valV1);
         return .values[valV1];
@@ -581,7 +583,7 @@ abstract final class Pref {
 
     final int? val = _setting.get(SettingBoxKey.appFontWeightV2);
     if (val == null) {
-      return .normal;
+      return const FontWeight(350);
     }
     return .values[val];
   }

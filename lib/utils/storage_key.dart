@@ -216,6 +216,7 @@ abstract final class SettingBoxKey {
   static const String themeMode = 'themeMode',
       defaultTextScale = 'textScale',
       appFontWeightV2 = 'appFontWeightV2',
+      appFontWeightValue = 'appFontWeightValue',
       customColor = 'customColor',
       displayMode = 'displayMode',
       smallCardWidth = 'smallCardWidth',
