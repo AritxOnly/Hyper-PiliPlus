@@ -17,6 +17,7 @@ import 'package:PiliPlus/common/widgets/scroll_physics.dart'
 import 'package:PiliPlus/common/widgets/simple_app_bar.dart';
 import 'package:PiliPlus/common/widgets/sliver/video_header.dart';
 import 'package:PiliPlus/common/widgets/svg/play_icon.dart';
+import 'package:PiliPlus/common/widgets/video_card/video_card_transition.dart';
 import 'package:PiliPlus/models/common/episode_panel_type.dart';
 import 'package:PiliPlus/models_new/pgc/pgc_info_model/result.dart';
 import 'package:PiliPlus/models_new/video/video_detail/episode.dart' as ugc;
@@ -1282,9 +1283,14 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         child: child,
       );
     }
-    return videoDetailController.plPlayerController.darkVideoPage
+    final page = videoDetailController.plPlayerController.darkVideoPage
         ? Theme(data: theme, child: child)
         : child;
+    return VideoPageHeroTarget(
+      tag: heroTag,
+      surfaceColor: colorScheme.surface,
+      child: page,
+    );
   }
 
   Widget buildTabBar({
@@ -1456,20 +1462,16 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
         ),
 
         Positioned.fill(
-          child: Hero(
-            tag: heroTag,
-            transitionOnUserGestures: true,
-            child: Obx(
-              () => NetworkImgLayer(
-                type: .emote,
-                quality: 60,
-                src: videoDetailController.cover.value,
-                width: width,
-                height: height,
-                cacheWidth: true,
-                getPlaceHolder: () => Center(
-                  child: Image.asset(Assets.loading),
-                ),
+          child: Obx(
+            () => NetworkImgLayer(
+              type: .emote,
+              quality: 60,
+              src: videoDetailController.cover.value,
+              width: width,
+              height: height,
+              cacheWidth: true,
+              getPlaceHolder: () => Center(
+                child: Image.asset(Assets.loading),
               ),
             ),
           ),

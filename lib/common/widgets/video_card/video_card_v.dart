@@ -4,6 +4,7 @@ import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
 import 'package:PiliPlus/common/widgets/video_popup_menu.dart';
+import 'package:PiliPlus/common/widgets/video_card/video_card_transition.dart';
 import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/home/rcmd/result.dart';
 import 'package:PiliPlus/models/model_rec_video_item.dart';
@@ -122,53 +123,56 @@ class _VideoCardVState extends State<VideoCardV> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Card(
-          child: InkWell(
-            onTap: onPushDetail,
-            onLongPress: onLongPress,
-            onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
-            borderRadius: const .all(.circular(12)),
-            child: Column(
-              crossAxisAlignment: .start,
-              children: [
-                AspectRatio(
-                  aspectRatio: Style.aspectRatio,
-                  child: LayoutBuilder(
-                    builder: (context, boxConstraints) {
-                      double maxWidth = boxConstraints.maxWidth;
-                      double maxHeight = boxConstraints.maxHeight;
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Hero(
-                            tag: _heroTag,
-                            transitionOnUserGestures: true,
-                            child: NetworkImgLayer(
-                              src: videoItem.cover,
-                              width: maxWidth,
-                              height: maxHeight,
-                              borderRadius: const .vertical(
-                                top: .circular(12),
+        Padding(
+          padding: const .all(4),
+          child: VideoCardHero(
+            tag: _heroTag,
+            child: Card(
+              margin: .zero,
+              child: InkWell(
+                onTap: onPushDetail,
+                onLongPress: onLongPress,
+                onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
+                borderRadius: const .all(.circular(12)),
+                child: Column(
+                  crossAxisAlignment: .start,
+                  children: [
+                    AspectRatio(
+                      aspectRatio: Style.aspectRatio,
+                      child: LayoutBuilder(
+                        builder: (context, boxConstraints) {
+                          double maxWidth = boxConstraints.maxWidth;
+                          double maxHeight = boxConstraints.maxHeight;
+                          return Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              NetworkImgLayer(
+                                src: videoItem.cover,
+                                width: maxWidth,
+                                height: maxHeight,
+                                borderRadius: const .vertical(
+                                  top: .circular(12),
+                                ),
                               ),
-                            ),
-                          ),
-                          if (videoItem.duration > 0)
-                            PBadge(
-                              bottom: 6,
-                              right: 7,
-                              size: .small,
-                              type: .gray,
-                              text: DurationUtils.formatDuration(
-                                videoItem.duration,
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
+                              if (videoItem.duration > 0)
+                                PBadge(
+                                  bottom: 6,
+                                  right: 7,
+                                  size: .small,
+                                  type: .gray,
+                                  text: DurationUtils.formatDuration(
+                                    videoItem.duration,
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    content(context),
+                  ],
                 ),
-                content(context),
-              ],
+              ),
             ),
           ),
         ),
