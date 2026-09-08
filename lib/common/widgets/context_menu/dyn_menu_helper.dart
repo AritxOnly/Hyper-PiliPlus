@@ -89,9 +89,23 @@ void _showEmoteDialog(ModuleDynamicModel? moduleDynamic) {
   );
 }
 
-void _showTextDialog(String text) {
+Future<void> _showTextDialog(String text) async {
+  final context = Get.context;
+  if (context == null) return;
+  if (await showNativeCopyDialog(
+        context,
+        text,
+        onMore: () => _showFlutterTextDialog(context, text),
+      ) ||
+      !context.mounted) {
+    return;
+  }
+  _showFlutterTextDialog(context, text);
+}
+
+void _showFlutterTextDialog(BuildContext context, String text) {
   showDialog(
-    context: Get.context!,
+    context: context,
     builder: (context) => Dialog(
       child: Padding(
         padding: const .symmetric(horizontal: 20, vertical: 16),

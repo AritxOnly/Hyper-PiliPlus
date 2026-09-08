@@ -86,23 +86,18 @@ class _MediaPageState extends CommonPageState<MinePage>
                     padding: const .only(bottom: 100),
                     physics: const AlwaysScrollableScrollPhysics(),
                     children: [
-                      _sectionCard(
-                        theme,
+                      Padding(
                         padding: const .symmetric(vertical: 12),
                         child: _buildUserInfo(theme, secondary),
                       ),
-                      _sectionCard(
-                        theme,
+                      Padding(
                         padding: const .symmetric(vertical: 4),
                         child: _buildActions(secondary),
                       ),
                       Obx(
                         () => controller.loadingState.value is Loading
                             ? const SizedBox.shrink()
-                            : _sectionCard(
-                                theme,
-                                child: _buildFav(theme, secondary),
-                              ),
+                            : _buildFav(theme, secondary),
                       ),
                     ],
                   ),
@@ -124,6 +119,7 @@ class _MediaPageState extends CommonPageState<MinePage>
       margin: const .symmetric(horizontal: 8, vertical: 4),
       color: theme.colorScheme.surfaceContainer,
       elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       clipBehavior: Clip.antiAlias,
       semanticContainer: false,
       child: Padding(padding: padding, child: child),
@@ -251,9 +247,9 @@ class _MediaPageState extends CommonPageState<MinePage>
   }
 
   Widget _buildUserInfo(ThemeData theme, Color secondary) {
-    final style = TextStyle(
-      fontSize: theme.textTheme.titleMedium!.fontSize,
-      fontWeight: FontWeight.bold,
+    const style = TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.w600,
     );
     final labelStyle = theme.textTheme.labelMedium!.copyWith(
       color: theme.colorScheme.outline,
@@ -401,31 +397,35 @@ class _MediaPageState extends CommonPageState<MinePage>
             ),
           ),
           const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: .spaceEvenly,
-            children: [
-              _btn(
-                count: userStat.dynamicCount,
-                countStyle: style,
-                name: '动态',
-                labelStyle: labelStyle,
-                onTap: () => controller.push('memberDynamics'),
-              ),
-              _btn(
-                count: userStat.following,
-                countStyle: style,
-                name: '关注',
-                labelStyle: labelStyle,
-                onTap: () => controller.push('follow'),
-              ),
-              _btn(
-                count: userStat.follower,
-                countStyle: style,
-                name: '粉丝',
-                labelStyle: labelStyle,
-                onTap: () => controller.push('fan'),
-              ),
-            ],
+          _sectionCard(
+            theme,
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              mainAxisAlignment: .spaceEvenly,
+              children: [
+                _btn(
+                  count: userStat.dynamicCount,
+                  countStyle: style,
+                  name: '动态',
+                  labelStyle: labelStyle,
+                  onTap: () => controller.push('memberDynamics'),
+                ),
+                _btn(
+                  count: userStat.following,
+                  countStyle: style,
+                  name: '关注',
+                  labelStyle: labelStyle,
+                  onTap: () => controller.push('follow'),
+                ),
+                _btn(
+                  count: userStat.follower,
+                  countStyle: style,
+                  name: '粉丝',
+                  labelStyle: labelStyle,
+                  onTap: () => controller.push('fan'),
+                ),
+              ],
+            ),
           ),
         ],
       );
@@ -439,29 +439,26 @@ class _MediaPageState extends CommonPageState<MinePage>
     required TextStyle? labelStyle,
     required VoidCallback onTap,
   }) {
-    return Flexible(
+    return Expanded(
       child: InkWell(
         onTap: onTap,
         borderRadius: Style.mdRadius,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 80),
-          child: AspectRatio(
-            aspectRatio: 1,
-            child: Column(
-              spacing: 4,
-              mainAxisSize: .min,
-              mainAxisAlignment: .center,
-              children: [
-                Text(
-                  count?.toString() ?? '-',
-                  style: countStyle,
-                ),
-                Text(
-                  name,
-                  style: labelStyle,
-                ),
-              ],
-            ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            spacing: 4,
+            mainAxisSize: .min,
+            mainAxisAlignment: .center,
+            children: [
+              Text(
+                count?.toString() ?? '-',
+                style: countStyle,
+              ),
+              Text(
+                name,
+                style: labelStyle,
+              ),
+            ],
           ),
         ),
       ),

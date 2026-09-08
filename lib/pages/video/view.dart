@@ -502,7 +502,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
                     final backgroundColor = isPortrait && scrollRatio > 0
                         ? Color.lerp(
                             Colors.black,
-                            colorScheme.surface,
+                            colorScheme.surfaceContainerLow,
                             scrollRatio,
                           )!
                         : Colors.black;
@@ -634,7 +634,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     return Opacity(
       opacity: videoDetailController.scrollRatio.value,
       child: Container(
-        color: colorScheme.surface,
+        color: colorScheme.surfaceContainerLow,
         alignment: .topCenter,
         child: SizedBox(
           height: kToolbarHeight,

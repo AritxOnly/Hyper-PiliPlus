@@ -103,6 +103,9 @@ class _MemberPageState extends State<MemberPage> {
               if (response != null) {
                 return [
                   DynamicSliverAppBar.medium(
+                    backgroundColor: theme.surface,
+                    surfaceTintColor: Colors.transparent,
+                    scrolledUnderElevation: 0,
                     actions: _actions(theme),
                     title: Text(_userController.username ?? ''),
                     flexibleSpace: Obx(
@@ -128,6 +131,9 @@ class _MemberPageState extends State<MemberPage> {
               }
               return [
                 SliverAppBar(
+                  backgroundColor: theme.surface,
+                  surfaceTintColor: Colors.transparent,
+                  scrolledUnderElevation: 0,
                   pinned: true,
                   actions: _actions(theme),
                   title: GestureDetector(

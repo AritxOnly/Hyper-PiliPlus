@@ -1,6 +1,22 @@
 part of 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 
-void showReplyCopyDialog(
+Future<void> showReplyCopyDialog(
+  BuildContext context,
+  String message,
+  Map<String, Emote> emotes,
+) async {
+  if (await showNativeCopyDialog(
+        context,
+        message,
+        onMore: () => _showRichReplyCopyDialog(context, message, emotes),
+      ) ||
+      !context.mounted) {
+    return;
+  }
+  _showRichReplyCopyDialog(context, message, emotes);
+}
+
+void _showRichReplyCopyDialog(
   BuildContext context,
   String message,
   Map<String, Emote> emotes,
