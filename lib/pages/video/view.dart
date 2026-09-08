@@ -1455,6 +1455,26 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
           ),
         ),
 
+        Positioned.fill(
+          child: Hero(
+            tag: heroTag,
+            transitionOnUserGestures: true,
+            child: Obx(
+              () => NetworkImgLayer(
+                type: .emote,
+                quality: 60,
+                src: videoDetailController.cover.value,
+                width: width,
+                height: height,
+                cacheWidth: true,
+                getPlaceHolder: () => Center(
+                  child: Image.asset(Assets.loading),
+                ),
+              ),
+            ),
+          ),
+        ),
+
         plPlayer(width: width, height: height),
 
         Obx(() {
@@ -1463,19 +1483,6 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
               child: GestureDetector(
                 onTap: handlePlay,
                 behavior: .opaque,
-                child: Obx(
-                  () => NetworkImgLayer(
-                    type: .emote,
-                    quality: 60,
-                    src: videoDetailController.cover.value,
-                    width: width,
-                    height: height,
-                    cacheWidth: true,
-                    getPlaceHolder: () => Center(
-                      child: Image.asset(Assets.loading),
-                    ),
-                  ),
-                ),
               ),
             );
           }

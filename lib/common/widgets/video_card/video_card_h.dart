@@ -12,10 +12,11 @@ import 'package:PiliPlus/utils/date_utils.dart';
 import 'package:PiliPlus/utils/duration_utils.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
+import 'package:PiliPlus/utils/utils.dart';
 import 'package:material_ui/material_ui.dart';
 
 // 视频卡片 - 水平布局
-class VideoCardH extends StatelessWidget {
+class VideoCardH extends StatefulWidget {
   const VideoCardH({
     super.key,
     required this.videoItem,
@@ -24,9 +25,39 @@ class VideoCardH extends StatelessWidget {
     this.onRemove,
   });
   final HorizontalVideoModel videoItem;
-  final VoidCallback? onTap;
+  final ValueChanged<String>? onTap;
   final ValueChanged<int>? onViewLater;
   final VoidCallback? onRemove;
+
+  @override
+  State<VideoCardH> createState() => _VideoCardHState();
+}
+
+class _VideoCardHState extends State<VideoCardH> {
+  HorizontalVideoModel get videoItem => widget.videoItem;
+  ValueChanged<String>? get onTap => widget.onTap;
+  ValueChanged<int>? get onViewLater => widget.onViewLater;
+  VoidCallback? get onRemove => widget.onRemove;
+
+  late String _heroTag;
+
+  @override
+  void initState() {
+    super.initState();
+    _heroTag = Utils.makeHeroTag(
+      videoItem.cid ?? videoItem.bvid ?? videoItem.aid,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant VideoCardH oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.videoItem, videoItem)) {
+      _heroTag = Utils.makeHeroTag(
+        videoItem.cid ?? videoItem.bvid ?? videoItem.aid,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,48 +75,55 @@ class VideoCardH extends StatelessWidget {
           InkWell(
             onLongPress: onLongPress,
             onSecondaryTap: PlatformUtils.isMobile ? null : onLongPress,
-            onTap:
-                onTap ??
-                () async {
-                  if (videoItem.isPugv ?? false) {
-                    PageUtils.viewPugv(seasonId: videoItem.seasonId);
-                    return;
-                  }
-
-                  if (videoItem.isLive ?? false) {
-                    if (videoItem.roomId case final roomId?) {
-                      PageUtils.toLiveRoom(roomId);
+            onTap: onTap != null
+                ? () => onTap!(_heroTag)
+                : () async {
+                    if (videoItem.isPugv ?? false) {
+                      PageUtils.viewPugv(
+                        seasonId: videoItem.seasonId,
+                        heroTag: _heroTag,
+                      );
+                      return;
                     }
-                    return;
-                  }
 
-                  if (videoItem.redirectUrl?.isNotEmpty == true &&
-                      PageUtils.viewPgcFromUri(videoItem.redirectUrl!)) {
-                    return;
-                  }
-
-                  int? cid = videoItem.cid;
-                  Dimension? dimension = videoItem.dimension;
-                  if (cid == null) {
-                    if (await SearchHttp.ab2cWithDimension(
-                          aid: videoItem.aid,
-                          bvid: videoItem.bvid,
-                        )
-                        case final res?) {
-                      cid = res.cid;
-                      dimension = res.dimension;
+                    if (videoItem.isLive ?? false) {
+                      if (videoItem.roomId case final roomId?) {
+                        PageUtils.toLiveRoom(roomId);
+                      }
+                      return;
                     }
-                  }
-                  if (cid != null) {
-                    PageUtils.toVideoPage(
-                      bvid: videoItem.bvid,
-                      cid: cid,
-                      cover: videoItem.cover,
-                      title: videoItem.title,
-                      dimension: dimension,
-                    );
-                  }
-                },
+
+                    if (videoItem.redirectUrl?.isNotEmpty == true &&
+                        PageUtils.viewPgcFromUri(
+                          videoItem.redirectUrl!,
+                          heroTag: _heroTag,
+                        )) {
+                      return;
+                    }
+
+                    int? cid = videoItem.cid;
+                    Dimension? dimension = videoItem.dimension;
+                    if (cid == null) {
+                      if (await SearchHttp.ab2cWithDimension(
+                            aid: videoItem.aid,
+                            bvid: videoItem.bvid,
+                          )
+                          case final res?) {
+                        cid = res.cid;
+                        dimension = res.dimension;
+                      }
+                    }
+                    if (cid != null) {
+                      PageUtils.toVideoPage(
+                        bvid: videoItem.bvid,
+                        cid: cid,
+                        cover: videoItem.cover,
+                        title: videoItem.title,
+                        dimension: dimension,
+                        heroTag: _heroTag,
+                      );
+                    }
+                  },
             child: Padding(
               padding: const .symmetric(
                 horizontal: Style.safeSpace,
@@ -106,10 +144,14 @@ class VideoCardH extends StatelessWidget {
                         return Stack(
                           clipBehavior: .none,
                           children: [
-                            NetworkImgLayer(
-                              src: videoItem.cover,
-                              width: maxWidth,
-                              height: maxHeight,
+                            Hero(
+                              tag: _heroTag,
+                              transitionOnUserGestures: true,
+                              child: NetworkImgLayer(
+                                src: videoItem.cover,
+                                width: maxWidth,
+                                height: maxHeight,
+                              ),
                             ),
                             if (videoItem.badge case final badge?)
                               PBadge(

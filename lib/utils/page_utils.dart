@@ -534,6 +534,7 @@ abstract final class PageUtils {
     bool off = false,
     bool isVertical = false,
     Dimension? dimension,
+    String? heroTag,
   }) {
     final arguments = {
       'aid': aid ?? IdUtils.bv2av(bvid!),
@@ -547,7 +548,7 @@ abstract final class PageUtils {
       'progress': ?progress,
       'videoType': videoType,
       'isVertical': dimension?.isVertical ?? isVertical,
-      'heroTag': Utils.makeHeroTag(cid),
+      'heroTag': heroTag ?? Utils.makeHeroTag(cid),
       ...?extraArguments,
     };
     return PageUtils.toDupNamed('/videoV', arguments: arguments, off: off);
@@ -560,6 +561,7 @@ abstract final class PageUtils {
     int? progress, // milliseconds
     int? aid,
     bool off = false,
+    String? heroTag,
   }) {
     RegExpMatch? match = _pgcRegex.firstMatch(uri);
     if (match != null) {
@@ -571,6 +573,7 @@ abstract final class PageUtils {
           epId: isSeason ? null : id,
           progress: progress,
           off: off,
+          heroTag: heroTag,
         );
       } else {
         viewPugv(
@@ -579,6 +582,7 @@ abstract final class PageUtils {
           aid: aid,
           progress: progress,
           off: off,
+          heroTag: heroTag,
         );
       }
       return true;
@@ -607,6 +611,7 @@ abstract final class PageUtils {
     dynamic epId,
     int? progress, // milliseconds
     bool off = false,
+    String? heroTag,
   }) async {
     try {
       SmartDialog.showLoading(msg: '资源获取中');
@@ -628,6 +633,7 @@ abstract final class PageUtils {
             cover: episode.cover,
             title: episode.title,
             progress: progress,
+            heroTag: heroTag,
             extraArguments: {
               'pgcApi': true,
               'pgcItem': response,
@@ -678,6 +684,7 @@ abstract final class PageUtils {
             pgcType: response.type,
             cover: episode.cover,
             progress: progress,
+            heroTag: heroTag,
             extraArguments: {
               'pgcItem': response,
             },
@@ -709,6 +716,7 @@ abstract final class PageUtils {
     int? aid,
     int? progress, // milliseconds
     bool off = false,
+    String? heroTag,
   }) async {
     try {
       SmartDialog.showLoading(msg: '资源获取中');
@@ -734,6 +742,7 @@ abstract final class PageUtils {
             epId: episode.id,
             cover: episode.cover,
             progress: progress,
+            heroTag: heroTag,
             extraArguments: {
               'pgcItem': response,
             },
