@@ -251,3 +251,7 @@
    <img alt="Star History Chart" src="https://star-history.dera.page/svg?repos=bggRGjQaUbCoE/PiliPlus&type=Date" />
  </picture>
 </a>
+
+## 本地开发环境
+
+本仓库使用带项目补丁的 Flutter 3.47.2。构建、分析和测试请使用 `./scripts/flutterw`，环境固定和恢复方法见 [Flutter 环境说明](docs/flutter-environment.md)。

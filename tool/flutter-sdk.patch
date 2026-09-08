@@ -1,0 +1,2315 @@
+diff --git a/packages/flutter/lib/src/gestures/tap_and_drag.dart b/packages/flutter/lib/src/gestures/tap_and_drag.dart
+index 2409d19eabd7b2d1f7754589974e720d5e3de5b8..3d26609d1cef5e5b380fdec90a69f5df2af33152 100644
+--- a/packages/flutter/lib/src/gestures/tap_and_drag.dart
++++ b/packages/flutter/lib/src/gestures/tap_and_drag.dart
+@@ -1407,6 +1407,9 @@ class TapAndHorizontalDragGestureRecognizer extends BaseTapAndDragGestureRecogni
+ 
+   @override
+   bool _hasSufficientGlobalDistanceToAccept(PointerDeviceKind pointerDeviceKind) {
++    if (pointerDeviceKind == PointerDeviceKind.touch) {
++      return false;
++    }
+     return _globalDistanceMoved.abs() > computeHitSlop(pointerDeviceKind, gestureSettings);
+   }
+ 
+diff --git a/packages/flutter/lib/src/material/bottom_sheet.dart b/packages/flutter/lib/src/material/bottom_sheet.dart
+index 0fba5686f288c3c5801eab1519481130ccd6231b..073dbfd469f3d0d3cb7598c6ae9beae1fb01e11f 100644
+--- a/packages/flutter/lib/src/material/bottom_sheet.dart
++++ b/packages/flutter/lib/src/material/bottom_sheet.dart
+@@ -254,8 +254,11 @@ class BottomSheet extends StatefulWidget {
+   }
+ }
+ 
++typedef BottomSheetState = _BottomSheetState;
++
+ class _BottomSheetState extends State<BottomSheet> {
+   final GlobalKey _childKey = GlobalKey(debugLabel: 'BottomSheet child');
++  GlobalKey get childKey => _childKey;
+ 
+   double get _childHeight {
+     final renderBox = _childKey.currentContext!.findRenderObject()! as RenderBox;
+@@ -266,14 +269,14 @@ class _BottomSheetState extends State<BottomSheet> {
+ 
+   Set<WidgetState> dragHandleStates = <WidgetState>{};
+ 
+-  void _handleDragStart(DragStartDetails details) {
++  void handleDragStart(DragStartDetails details) {
+     setState(() {
+       dragHandleStates.add(WidgetState.dragged);
+     });
+     widget.onDragStart?.call(details);
+   }
+ 
+-  void _handleDragUpdate(DragUpdateDetails details) {
++  void handleDragUpdate(DragUpdateDetails details) {
+     assert(
+       (widget.enableDrag || (widget.showDragHandle ?? false)) && widget.animationController != null,
+       "'BottomSheet.animationController' cannot be null when 'BottomSheet.enableDrag' or 'BottomSheet.showDragHandle' is true. "
+@@ -285,7 +288,7 @@ class _BottomSheetState extends State<BottomSheet> {
+     widget.animationController!.value -= details.primaryDelta! / _childHeight;
+   }
+ 
+-  void _handleDragEnd(DragEndDetails details) {
++  void handleDragEnd(DragEndDetails details) {
+     assert(
+       (widget.enableDrag || (widget.showDragHandle ?? false)) && widget.animationController != null,
+       "'BottomSheet.animationController' cannot be null when 'BottomSheet.enableDrag' or 'BottomSheet.showDragHandle' is true. "
+@@ -376,9 +379,9 @@ class _BottomSheetState extends State<BottomSheet> {
+       // no need to add it.
+       if (!widget.enableDrag) {
+         dragHandle = _BottomSheetGestureDetector(
+-          onVerticalDragStart: _handleDragStart,
+-          onVerticalDragUpdate: _handleDragUpdate,
+-          onVerticalDragEnd: _handleDragEnd,
++          onVerticalDragStart: handleDragStart,
++          onVerticalDragUpdate: handleDragUpdate,
++          onVerticalDragEnd: handleDragEnd,
+           child: dragHandle,
+         );
+       }
+@@ -420,9 +423,9 @@ class _BottomSheetState extends State<BottomSheet> {
+     return !widget.enableDrag
+         ? bottomSheet
+         : _BottomSheetGestureDetector(
+-            onVerticalDragStart: _handleDragStart,
+-            onVerticalDragUpdate: _handleDragUpdate,
+-            onVerticalDragEnd: _handleDragEnd,
++            onVerticalDragStart: handleDragStart,
++            onVerticalDragUpdate: handleDragUpdate,
++            onVerticalDragEnd: handleDragEnd,
+             child: bottomSheet,
+           );
+   }
+@@ -1463,6 +1466,7 @@ class _BottomSheetGestureDetector extends StatelessWidget {
+                   ..onStart = onVerticalDragStart
+                   ..onUpdate = onVerticalDragUpdate
+                   ..onEnd = onVerticalDragEnd
++                  ..gestureSettings = MediaQuery.maybeGestureSettingsOf(context)
+                   ..onlyAcceptDragOnThreshold = true;
+               },
+             ),
+@@ -1472,6 +1476,8 @@ class _BottomSheetGestureDetector extends StatelessWidget {
+   }
+ }
+ 
++typedef BottomSheetDefaultsM3 = _BottomSheetDefaultsM3;
++
+ // BEGIN GENERATED TOKEN PROPERTIES - BottomSheet
+ 
+ // Do not edit by hand. The code between the "BEGIN GENERATED" and
+diff --git a/packages/flutter/lib/src/material/floating_action_button.dart b/packages/flutter/lib/src/material/floating_action_button.dart
+index 4b78e44dab99c9114b91adeb61eac187a9e1d0e6..80ca9c9bfc26a9f3f5401bd0c474d875b014728c 100644
+--- a/packages/flutter/lib/src/material/floating_action_button.dart
++++ b/packages/flutter/lib/src/material/floating_action_button.dart
+@@ -603,9 +603,9 @@ class FloatingActionButton extends StatelessWidget {
+       result = Tooltip(message: tooltip, child: result);
+     }
+ 
+-    if (heroTag != null) {
+-      result = Hero(tag: heroTag!, child: result);
+-    }
++    // if (heroTag != null) {
++    //   result = Hero(tag: heroTag!, child: result);
++    // }
+ 
+     return MergeSemantics(child: result);
+   }
+diff --git a/packages/flutter/lib/src/material/navigation_drawer.dart b/packages/flutter/lib/src/material/navigation_drawer.dart
+index 8a16764cb0c8d5276c21636dd946f9475f77e9a8..031c2267d9799882deb8cd300e6dd0408e0b093d 100644
+--- a/packages/flutter/lib/src/material/navigation_drawer.dart
++++ b/packages/flutter/lib/src/material/navigation_drawer.dart
+@@ -67,8 +67,11 @@ class NavigationDrawer extends StatelessWidget {
+     this.onDestinationSelected,
+     this.selectedIndex = 0,
+     this.tilePadding = const EdgeInsets.symmetric(horizontal: 12.0),
++    this.flex = 1,
+   });
+ 
++  final int flex;
++
+   /// The background color of the [Material] that holds the [NavigationDrawer]'s
+   /// contents.
+   ///
+@@ -192,6 +195,7 @@ class NavigationDrawer extends StatelessWidget {
+           children: <Widget>[
+             ?header,
+             Expanded(
++              flex: flex,
+               child: Material(
+                 type: MaterialType.transparency,
+                 child: ListView(children: wrappedChildren),
+@@ -410,7 +414,7 @@ class _NavigationDestinationBuilder extends StatelessWidget {
+       child: _NavigationDestinationSemantics(
+         child: SizedBox(
+           height: navigationDrawerTheme.tileHeight ?? defaults.tileHeight,
+-          child: inkWell,
++          child: Material(type: MaterialType.transparency, child: inkWell),
+         ),
+       ),
+     );
+diff --git a/packages/flutter/lib/src/material/popup_menu.dart b/packages/flutter/lib/src/material/popup_menu.dart
+index 8b84b2760d59c5f2e1a73ff7fd823c92ad01a417..06f98144b4af0b7b39c5d187809b49d0f9167af9 100644
+--- a/packages/flutter/lib/src/material/popup_menu.dart
++++ b/packages/flutter/lib/src/material/popup_menu.dart
+@@ -446,6 +446,11 @@ class PopupMenuItemState<T, W extends PopupMenuItem<T>> extends State<W> {
+         data: IconThemeData(opacity: isDark ? 0.5 : 0.38),
+         child: item,
+       );
++    } else {
++      item = IconTheme.merge(
++        data: IconThemeData(color: style.color),
++        child: item,
++      );
+     }
+ 
+     return MergeSemantics(
+@@ -1011,6 +1016,9 @@ class _PopupMenuRoute<T> extends PopupRoute<T> {
+   @override
+   final String barrierLabel;
+ 
++  @override
++  bool get isMenu => true;
++
+   @override
+   Widget buildPage(
+     BuildContext context,
+diff --git a/packages/flutter/lib/src/material/progress_indicator.dart b/packages/flutter/lib/src/material/progress_indicator.dart
+index 96cb72bac6235e17804ab688ec67a0f57dd543d0..07bfadb685b2136c390ab56a56d54f12ca8242a6 100644
+--- a/packages/flutter/lib/src/material/progress_indicator.dart
++++ b/packages/flutter/lib/src/material/progress_indicator.dart
+@@ -1279,6 +1279,7 @@ class _RefreshProgressIndicatorPainter extends _CircularProgressIndicatorPainter
+ 
+   @override
+   void paint(Canvas canvas, Size size) {
++    if (size == .zero) return;
+     super.paint(canvas, size);
+     if (arrowheadScale > 0.0) {
+       paintArrowhead(canvas, size);
+diff --git a/packages/flutter/lib/src/material/scaffold.dart b/packages/flutter/lib/src/material/scaffold.dart
+index efe8ff9d1a32c8ddc97303605a39d84104f4b1cf..1422c7cf75bfbd4bfb297a1a97aed3c3682aad20 100644
+--- a/packages/flutter/lib/src/material/scaffold.dart
++++ b/packages/flutter/lib/src/material/scaffold.dart
+@@ -3295,7 +3295,9 @@ class _DismissDrawerAction extends DismissAction {
+ class ScaffoldFeatureController<T extends Widget, U> {
+   const ScaffoldFeatureController._(this._widget, this._completer, this.close, this.setState);
+   final T _widget;
++  T get widget => _widget;
+   final Completer<U> _completer;
++  Completer<U> get completer => _completer;
+ 
+   /// Completes when the feature controlled by this object is no longer visible.
+   Future<U> get closed => _completer.future;
+@@ -3307,6 +3309,9 @@ class ScaffoldFeatureController<T extends Widget, U> {
+   final StateSetter? setState;
+ }
+ 
++typedef StandardBottomSheet = _StandardBottomSheet;
++typedef StandardBottomSheetState = _StandardBottomSheetState;
++
+ class _StandardBottomSheet extends StatefulWidget {
+   const _StandardBottomSheet({
+     super.key,
+@@ -3372,12 +3377,12 @@ class _StandardBottomSheetState extends State<_StandardBottomSheet> {
+     widget.onClosing?.call();
+   }
+ 
+-  void _handleDragStart(DragStartDetails details) {
++  void handleDragStart(DragStartDetails details) {
+     // Allow the bottom sheet to track the user's finger accurately.
+     animationCurve = Curves.linear;
+   }
+ 
+-  void _handleDragEnd(DragEndDetails details, {bool? isClosing}) {
++  void handleDragEnd(DragEndDetails details, {bool? isClosing}) {
+     // Allow the bottom sheet to animate smoothly from its current position.
+     animationCurve = Split(widget.animationController.value, endCurve: _standardBottomSheetCurve);
+   }
+@@ -3430,8 +3435,8 @@ class _StandardBottomSheetState extends State<_StandardBottomSheet> {
+             animationController: widget.animationController,
+             enableDrag: widget.enableDrag,
+             showDragHandle: widget.showDragHandle,
+-            onDragStart: _handleDragStart,
+-            onDragEnd: _handleDragEnd,
++            onDragStart: handleDragStart,
++            onDragEnd: handleDragEnd,
+             onClosing: widget.onClosing!,
+             builder: widget.builder,
+             backgroundColor: widget.backgroundColor,
+@@ -3463,7 +3468,17 @@ class PersistentBottomSheetController
+     this._isLocalHistoryEntry,
+   ) : super._();
+ 
++  const PersistentBottomSheetController(
++    super.widget,
++    super.completer,
++    super.close,
++    StateSetter super.setState,
++    this._isLocalHistoryEntry,
++  ) : super._();
++
+   final bool _isLocalHistoryEntry;
++
++  bool get isLocalHistoryEntry => _isLocalHistoryEntry;
+ }
+ 
+ class _ScaffoldScope extends InheritedWidget {
+diff --git a/packages/flutter/lib/src/material/tabs.dart b/packages/flutter/lib/src/material/tabs.dart
+index 87a611a6f606817bda3fe1a0ebbd39c31a9d4605..843a05d15e6d6bf0d7dd6bd743899a8aaf7f4c62 100644
+--- a/packages/flutter/lib/src/material/tabs.dart
++++ b/packages/flutter/lib/src/material/tabs.dart
+@@ -9,7 +9,7 @@ import 'dart:math' as math;
+ import 'dart:ui' show SemanticsRole, lerpDouble;
+ 
+ import 'package:flutter/foundation.dart';
+-import 'package:flutter/gestures.dart' show DragStartBehavior;
++import 'package:flutter/gestures.dart' show DragStartBehavior, HorizontalDragGestureRecognizer;
+ import 'package:flutter/rendering.dart';
+ import 'package:flutter/widgets.dart';
+ 
+@@ -2222,8 +2222,17 @@ class TabBarView extends StatefulWidget {
+     this.dragStartBehavior = DragStartBehavior.start,
+     this.viewportFraction = 1.0,
+     this.clipBehavior = Clip.hardEdge,
++    this.scrollDirection = Axis.horizontal,
++    this.hitTestBehavior = HitTestBehavior.opaque,
++    this.horizontalDragGestureRecognizer = HorizontalDragGestureRecognizer.new,
+   });
+ 
++  final Axis scrollDirection;
++
++  final HitTestBehavior hitTestBehavior;
++
++  final ValueGetter<HorizontalDragGestureRecognizer> horizontalDragGestureRecognizer;
++
+   /// This widget's selection and animation state.
+   ///
+   /// If [TabController] is not provided, then the value of [DefaultTabController.of]
+@@ -2525,6 +2534,9 @@ class _TabBarViewState extends State<TabBarView> {
+         dragStartBehavior: widget.dragStartBehavior,
+         clipBehavior: widget.clipBehavior,
+         controller: _pageController,
++        scrollDirection: widget.scrollDirection,
++        hitTestBehavior: widget.hitTestBehavior,
++        horizontalDragGestureRecognizer: widget.horizontalDragGestureRecognizer,
+         physics: widget.physics == null
+             ? const PageScrollPhysics().applyTo(const ClampingScrollPhysics())
+             : const PageScrollPhysics().applyTo(widget.physics),
+diff --git a/packages/flutter/lib/src/material/text_field.dart b/packages/flutter/lib/src/material/text_field.dart
+index 0420aca37c264dfe901379a486fa0d6e6e61393c..d8eb0a639b44058341dda71c1db57554a304078e 100644
+--- a/packages/flutter/lib/src/material/text_field.dart
++++ b/packages/flutter/lib/src/material/text_field.dart
+@@ -301,7 +301,7 @@ class TextField extends StatefulWidget {
+     this.scrollPadding = const EdgeInsets.all(20.0),
+     this.dragStartBehavior = DragStartBehavior.start,
+     bool? enableInteractiveSelection,
+-    this.selectAllOnFocus,
++    this.selectAllOnFocus = false,
+     this.selectionControls,
+     this.onTap,
+     this.onTapAlwaysCalled = false,
+diff --git a/packages/flutter/lib/src/painting/inline_span.dart b/packages/flutter/lib/src/painting/inline_span.dart
+index 0c4a0be6177bb8da011708020ab01936b9059f5e..77baa589699f19822f126cb20e2db327b8bb2bf5 100644
+--- a/packages/flutter/lib/src/painting/inline_span.dart
++++ b/packages/flutter/lib/src/painting/inline_span.dart
+@@ -315,6 +315,21 @@ abstract class InlineSpan extends DiagnosticableTree {
+     return buffer.toString();
+   }
+ 
++  (String, Map<int, String>) toPlainTextV2({
++    bool includeSemanticsLabels = true,
++    bool includePlaceholders = true,
++  }) {
++    final buffer = StringBuffer();
++    final map = <int, String>{};
++    computeToPlainTextV2(
++      buffer,
++      map,
++      includeSemanticsLabels: includeSemanticsLabels,
++      includePlaceholders: includePlaceholders,
++    );
++    return (buffer.toString(), map);
++  }
++
+   /// Flattens the [InlineSpan] tree to a list of
+   /// [InlineSpanSemanticsInformation] objects.
+   ///
+@@ -358,6 +373,14 @@ abstract class InlineSpan extends DiagnosticableTree {
+     bool includePlaceholders = true,
+   });
+ 
++  @protected
++  void computeToPlainTextV2(
++    StringBuffer buffer,
++    Map<int, String> map, {
++    bool includeSemanticsLabels = true,
++    bool includePlaceholders = true,
++  });
++
+   /// Returns the UTF-16 code unit at the given `index` in the flattened string.
+   ///
+   /// This only accounts for the [TextSpan.text] values and ignores [PlaceholderSpan]s.
+diff --git a/packages/flutter/lib/src/painting/placeholder_span.dart b/packages/flutter/lib/src/painting/placeholder_span.dart
+index 110ff860310dfbc0fb2343517189071ad6ab15ed..7ad808d05bcf1e57a4a93cfd1919796002df2b69 100644
+--- a/packages/flutter/lib/src/painting/placeholder_span.dart
++++ b/packages/flutter/lib/src/painting/placeholder_span.dart
+@@ -45,6 +45,7 @@ abstract class PlaceholderSpan extends InlineSpan {
+     this.alignment = ui.PlaceholderAlignment.bottom,
+     this.baseline,
+     super.style,
++    this.rawText,
+   });
+ 
+   /// The unicode character to represent a placeholder.
+@@ -61,6 +62,8 @@ abstract class PlaceholderSpan extends InlineSpan {
+   /// This is ignored when using other alignment modes.
+   final TextBaseline? baseline;
+ 
++  final String? rawText;
++
+   /// [PlaceholderSpan]s are flattened to a `0xFFFC` object replacement character in the
+   /// plain text representation when `includePlaceholders` is true.
+   @override
+@@ -74,6 +77,21 @@ abstract class PlaceholderSpan extends InlineSpan {
+     }
+   }
+ 
++  @override
++  void computeToPlainTextV2(
++    StringBuffer buffer,
++    Map<int, String> map, {
++    bool includeSemanticsLabels = true,
++    bool includePlaceholders = true,
++  }) {
++    if (includePlaceholders) {
++      if (rawText != null) {
++        map[buffer.length] = rawText!;
++      }
++      buffer.writeCharCode(placeholderCodeUnit);
++    }
++  }
++
+   @override
+   void computeSemanticsInformation(List<InlineSpanSemanticsInformation> collector) {
+     collector.add(InlineSpanSemanticsInformation.placeholder);
+diff --git a/packages/flutter/lib/src/painting/text_painter.dart b/packages/flutter/lib/src/painting/text_painter.dart
+index 71e5d422ba98c9e1086a61a7d9d8c606dd5287e3..41de9f5fd1cdb3aa394a27bc24553e954d168a06 100644
+--- a/packages/flutter/lib/src/painting/text_painter.dart
++++ b/packages/flutter/lib/src/painting/text_painter.dart
+@@ -743,6 +743,7 @@ class TextPainter {
+   bool _debugNeedsRelayout = true;
+   // The result of the most recent `layout` call.
+   _TextPainterLayoutCacheWithOffset? _layoutCache;
++  _TextPainterLayoutCacheWithOffset? get layoutCache => _layoutCache;
+ 
+   // Whether _layoutCache contains outdated paint information and needs to be
+   // updated before painting.
+diff --git a/packages/flutter/lib/src/painting/text_span.dart b/packages/flutter/lib/src/painting/text_span.dart
+index 09fba7fc4fb3549d8912c59f5a41699e9ea72fcd..57ee469358eed043af003956e1a61a038cc8a20d 100644
+--- a/packages/flutter/lib/src/painting/text_span.dart
++++ b/packages/flutter/lib/src/painting/text_span.dart
+@@ -398,6 +398,31 @@ class TextSpan extends InlineSpan implements HitTestTarget, MouseTrackerAnnotati
+     }
+   }
+ 
++  @override
++  void computeToPlainTextV2(
++    StringBuffer buffer,
++    Map<int, String> map, {
++    bool includeSemanticsLabels = true,
++    bool includePlaceholders = true,
++  }) {
++    assert(debugAssertIsValid());
++    if (semanticsLabel != null && includeSemanticsLabels) {
++      buffer.write(semanticsLabel);
++    } else if (text != null) {
++      buffer.write(text);
++    }
++    if (children != null) {
++      for (final InlineSpan child in children!) {
++        child.computeToPlainTextV2(
++          buffer,
++          map,
++          includeSemanticsLabels: includeSemanticsLabels,
++          includePlaceholders: includePlaceholders,
++        );
++      }
++    }
++  }
++
+   @override
+   void computeSemanticsInformation(
+     List<InlineSpanSemanticsInformation> collector, {
+diff --git a/packages/flutter/lib/src/rendering/editable.dart b/packages/flutter/lib/src/rendering/editable.dart
+index 5d0121e3f37b7546a95953fa7442ba98661ca3ea..a42c758b2fb84aa2f52bf3283acd6a8ec2820408 100644
+--- a/packages/flutter/lib/src/rendering/editable.dart
++++ b/packages/flutter/lib/src/rendering/editable.dart
+@@ -321,7 +321,7 @@ class RenderEditable extends RenderBox
+     Offset cursorOffset = Offset.zero,
+     double devicePixelRatio = 1.0,
+     ui.BoxHeightStyle selectionHeightStyle = ui.BoxHeightStyle.max,
+-    ui.BoxWidthStyle selectionWidthStyle = ui.BoxWidthStyle.max,
++    ui.BoxWidthStyle selectionWidthStyle = ui.BoxWidthStyle.tight,
+     bool? enableInteractiveSelection,
+     this.floatingCursorAddedMargin = const EdgeInsets.fromLTRB(4, 4, 4, 5),
+     TextRange? promptRectRange,
+@@ -2912,17 +2912,31 @@ class _TextHighlightPainter extends RenderEditablePainter {
+ 
+     highlightPaint.color = color;
+     final TextPainter textPainter = renderEditable._textPainter;
+-    final Set<TextBox> boxes = textPainter
+-        .getBoxesForSelection(
+-          TextSelection(baseOffset: range.start, extentOffset: range.end),
+-          boxHeightStyle: selectionHeightStyle,
+-          boxWidthStyle: selectionWidthStyle,
+-        )
+-        .toSet();
+ 
+-    for (final box in boxes) {
++    final List<ui.TextBox> boxes = textPainter.getBoxesForSelection(
++      TextSelection(baseOffset: range.start, extentOffset: range.end),
++      boxHeightStyle: ui.BoxHeightStyle.max,
++      boxWidthStyle: ui.BoxWidthStyle.tight,
++    );
++    ui.TextBox? mergedBox;
++    for (final textBox in boxes) {
++      if (mergedBox == null) {
++        mergedBox = textBox;
++      } else if (mergedBox.top != textBox.top) {
++        canvas.drawRect(
++          Rect.fromLTRB(mergedBox.left, mergedBox.top, size.width, mergedBox.bottom)
++              .shift(renderEditable._paintOffset)
++              .intersect(Rect.fromLTRB(0, 0, textPainter.width, textPainter.height)),
++          highlightPaint,
++        );
++        mergedBox = textBox;
++      } else {
++        mergedBox = TextBox.fromLTRBD(mergedBox.left, mergedBox.top, textBox.right, mergedBox.bottom, mergedBox.direction);
++      }
++    }
++    if (mergedBox != null) {
+       canvas.drawRect(
+-        box
++        mergedBox
+             .toRect()
+             .shift(renderEditable._paintOffset)
+             .intersect(Rect.fromLTWH(0, 0, textPainter.width, textPainter.height)),
+diff --git a/packages/flutter/lib/src/rendering/paragraph.dart b/packages/flutter/lib/src/rendering/paragraph.dart
+index 5bcc4570209cd946173841a0a56599e93c53b47c..04bdbef5c81b93ff5b79b338f525b487d761c30d 100644
+--- a/packages/flutter/lib/src/rendering/paragraph.dart
++++ b/packages/flutter/lib/src/rendering/paragraph.dart
+@@ -7,6 +7,7 @@
+ /// @docImport 'editable.dart';
+ library;
+ 
++import 'dart:io' show Platform;
+ import 'dart:math' as math;
+ import 'dart:ui'
+     as ui
+@@ -389,6 +390,7 @@ class RenderParagraph extends RenderBox
+   );
+ 
+   final TextPainter _textPainter;
++  TextPainter get textPainter => _textPainter;
+ 
+   // Currently, computing min/max intrinsic width/height will destroy state
+   // inside the painter. Instead of calling _layout again to get back the correct
+@@ -506,27 +508,20 @@ class RenderParagraph extends RenderBox
+   }
+ 
+   List<_SelectableFragment> _getSelectableFragments() {
+-    final String plainText = text.toPlainText(includeSemanticsLabels: false);
+-    final result = <_SelectableFragment>[];
+-    var start = 0;
+-    while (start < plainText.length) {
+-      int end = plainText.indexOf(_placeholderCharacter, start);
+-      if (start != end) {
+-        if (end == -1) {
+-          end = plainText.length;
+-        }
+-        result.add(
+-          _SelectableFragment(
+-            paragraph: this,
+-            range: TextRange(start: start, end: end),
+-            fullText: plainText,
+-          ),
+-        );
+-        start = end;
+-      }
+-      start += 1;
+-    }
+-    return result;
++    final (String plainText, Map<int, String> placeHolder) = text.toPlainTextV2(
++      includeSemanticsLabels: false,
++    );
++    if (plainText.isEmpty) {
++      return <_SelectableFragment>[];
++    }
++    return [
++      _SelectableFragment(
++        paragraph: this,
++        range: TextRange(start: 0, end: plainText.length),
++        fullText: plainText,
++        placeholder: placeHolder,
++      ),
++    ];
+   }
+ 
+   /// Determines whether the given [Selectable] was created by this
+@@ -1512,7 +1507,7 @@ class RenderParagraph extends RenderBox
+ class _SelectableFragment
+     with Selectable, Diagnosticable, ChangeNotifier
+     implements TextLayoutMetrics {
+-  _SelectableFragment({required this.paragraph, required this.fullText, required this.range})
++  _SelectableFragment({required this.paragraph, required this.fullText, required this.range, required this.placeholder})
+     : assert(range.isValid && !range.isCollapsed && range.isNormalized) {
+     if (kFlutterMemoryAllocationsEnabled) {
+       ChangeNotifier.maybeDispatchObjectCreation(this);
+@@ -1523,6 +1518,7 @@ class _SelectableFragment
+   final TextRange range;
+   final RenderParagraph paragraph;
+   final String fullText;
++  final Map<int,String> placeholder;
+ 
+   TextPosition? _textSelectionStart;
+   TextPosition? _textSelectionEnd;
+@@ -1553,19 +1549,37 @@ class _SelectableFragment
+ 
+     final int selectionStart = _textSelectionStart!.offset;
+     final int selectionEnd = _textSelectionEnd!.offset;
++
+     final bool isReversed = selectionStart > selectionEnd;
+-    final Offset startOffsetInParagraphCoordinates = paragraph._getOffsetForPosition(
+-      _textSelectionStart!,
+-    );
+-    final Offset endOffsetInParagraphCoordinates = selectionStart == selectionEnd
+-        ? startOffsetInParagraphCoordinates
+-        : paragraph._getOffsetForPosition(_textSelectionEnd!);
+     final flipHandles = isReversed != (TextDirection.rtl == paragraph.textDirection);
+     final selection = TextSelection(baseOffset: selectionStart, extentOffset: selectionEnd);
++    final List<ui.TextBox> boxes = paragraph.getBoxesForSelection(selection, boxHeightStyle: .max);
+     final selectionRects = <Rect>[];
+-    for (final TextBox textBox in paragraph.getBoxesForSelection(selection)) {
++    for (final textBox in boxes) {
+       selectionRects.add(textBox.toRect());
+     }
++
++    final Offset startOffsetInParagraphCoordinates;
++    final Offset endOffsetInParagraphCoordinates;
++    if (boxes.isEmpty) {
++      final Offset offset =
++          paragraph._textPainter.getOffsetForCaret(selection.extent, Rect.zero) +
++          Offset(0, paragraph._textPainter.getFullHeightForCaret(selection.extent, Rect.zero));
++      startOffsetInParagraphCoordinates = endOffsetInParagraphCoordinates = Offset(
++        clampDouble(offset.dx, 0, paragraph._textPainter.width),
++        clampDouble(offset.dy, 0, paragraph._textPainter.height),
++      );
++    } else {
++      startOffsetInParagraphCoordinates = Offset(
++        clampDouble(boxes.first.start, 0, paragraph._textPainter.width),
++        clampDouble(boxes.first.bottom, 0, paragraph._textPainter.height),
++      );
++      endOffsetInParagraphCoordinates = Offset(
++        clampDouble(boxes.last.end, 0, paragraph._textPainter.width),
++        clampDouble(boxes.last.bottom, 0, paragraph._textPainter.height),
++      );
++    }
++
+     final selectionCollapsed = selectionStart == selectionEnd;
+     final (
+       TextSelectionHandleType startSelectionHandleType,
+@@ -1609,12 +1623,15 @@ class _SelectableFragment
+             result = _updateSelectionEdge(
+               edgeUpdate.globalPosition,
+               isEnd: edgeUpdate.type == SelectionEventType.endEdgeUpdate,
++              isSingle: edgeUpdate.isSingle,
++              fromDrag: edgeUpdate.fromDrag,
+             );
+           case TextGranularity.word:
+             result = _updateSelectionEdgeByTextBoundary(
+               edgeUpdate.globalPosition,
+               isEnd: edgeUpdate.type == SelectionEventType.endEdgeUpdate,
+               getTextBoundary: _getWordBoundaryAtPosition,
++              isSingle: edgeUpdate.isSingle,
+             );
+           case TextGranularity.paragraph:
+             result = _updateSelectionEdgeByMultiSelectableTextBoundary(
+@@ -1671,9 +1688,33 @@ class _SelectableFragment
+     if (_textSelectionStart == null || _textSelectionEnd == null) {
+       return null;
+     }
+-    final int start = math.min(_textSelectionStart!.offset, _textSelectionEnd!.offset);
++    int start = math.min(_textSelectionStart!.offset, _textSelectionEnd!.offset);
+     final int end = math.max(_textSelectionStart!.offset, _textSelectionEnd!.offset);
+-    return SelectedContent(plainText: fullText.substring(start, end));
++    final String selectedText;
++    if (placeholder.isEmpty) {
++      selectedText = fullText.substring(start, end);
++    } else {
++      final buffer = StringBuffer();
++      for (final e in placeholder.entries) {
++        final i = e.key;
++        if (i < start) {
++          continue;
++        }
++        if (i >= end) {
++          break;
++        }
++        if (i != start) {
++          buffer.write(fullText.substring(start, i));
++        }
++        buffer.write(e.value);
++        start = i + 1;
++      }
++      if (start != end) {
++        buffer.write(fullText.substring(start, end));
++      }
++      selectedText = buffer.toString();
++    }
++    return SelectedContent(plainText: selectedText);
+   }
+ 
+   @override
+@@ -1893,6 +1934,7 @@ class _SelectableFragment
+     Offset globalPosition, {
+     required bool isEnd,
+     required _TextBoundaryAtPosition getTextBoundary,
++    bool isSingle = false,
+   }) {
+     // When the start/end edges are swapped, i.e. the start is after the end, and
+     // the scrollable synthesizes an event for the opposite edge, this will potentially
+@@ -1918,6 +1960,7 @@ class _SelectableFragment
+       _rect,
+       localPosition,
+       direction: paragraph.textDirection,
++      isSingle: isSingle,
+     );
+ 
+     final TextPosition position = paragraph.getPositionForOffset(adjustedOffset);
+@@ -1972,7 +2015,7 @@ class _SelectableFragment
+     return SelectionUtils.getResultBasedOnRect(_rect, localPosition);
+   }
+ 
+-  SelectionResult _updateSelectionEdge(Offset globalPosition, {required bool isEnd}) {
++  SelectionResult _updateSelectionEdge(Offset globalPosition, {required bool isEnd, bool isSingle = false, bool fromDrag = false}) {
+     _setSelectionPosition(null, isEnd: isEnd);
+     final Matrix4 transform = paragraph.getTransformTo(null);
+     transform.invert();
+@@ -1991,11 +2034,30 @@ class _SelectableFragment
+       _rect,
+       localPosition,
+       direction: paragraph.textDirection,
++      isSingle: isSingle,
+     );
+ 
+-    final TextPosition position = _clampTextPosition(
+-      paragraph.getPositionForOffset(adjustedOffset),
+-    );
++    TextPosition position = _clampTextPosition(paragraph.getPositionForOffset(adjustedOffset));
++    // if (rawText != null) {
++    //   position = _clampTextPosition(
++    //     adjustedOffset.dx * 2 > _rect.left + _rect.right
++    //         ? TextPosition(offset: range.end)
++    //         : TextPosition(offset: range.start),
++    //   );
++    // } else {
++    //   position = _clampTextPosition(paragraph.getPositionForOffset(adjustedOffset));
++    // }
++    if (fromDrag && isSingle && !Platform.isIOS) {
++      if (isEnd) {
++        if (position.offset <= _textSelectionStart!.offset) {
++          position = TextPosition(offset: _textSelectionStart!.offset + 1);
++        }
++      } else {
++        if (position.offset >= _textSelectionEnd!.offset) {
++          position = TextPosition(offset: _textSelectionEnd!.offset - 1);
++        }
++      }
++    }
+     _setSelectionPosition(position, isEnd: isEnd);
+     if (position.offset == range.end) {
+       return SelectionResult.next;
+@@ -3634,8 +3696,25 @@ class _SelectableFragment
+       final selectionPaint = Paint()
+         ..style = PaintingStyle.fill
+         ..color = paragraph.selectionColor!;
+-      for (final TextBox textBox in paragraph.getBoxesForSelection(selection)) {
+-        context.canvas.drawRect(textBox.toRect().shift(offset), selectionPaint);
++
++      final List<ui.TextBox> boxes = paragraph.getBoxesForSelection(
++        selection,
++        boxHeightStyle: ui.BoxHeightStyle.max,
++        boxWidthStyle: ui.BoxWidthStyle.tight,
++      );
++      ui.TextBox? mergedBox;
++      for (final textBox in boxes) {
++        if (mergedBox == null) {
++          mergedBox = textBox;
++        } else if (mergedBox.top != textBox.top) {
++          context.canvas.drawRect(Rect.fromLTRB(mergedBox.left, mergedBox.top, paragraph.size.width, mergedBox.bottom).shift(offset), selectionPaint);
++          mergedBox = textBox;
++        } else {
++          mergedBox = TextBox.fromLTRBD(mergedBox.left, mergedBox.top, textBox.right, mergedBox.bottom, mergedBox.direction);
++        }
++      }
++      if (mergedBox != null) {
++        context.canvas.drawRect(mergedBox.toRect().shift(offset), selectionPaint);
+       }
+     }
+   }
+diff --git a/packages/flutter/lib/src/rendering/selection.dart b/packages/flutter/lib/src/rendering/selection.dart
+index a813e141dc44f19cf38addc3717c10fb3a061d85..d045236d03150ee3805338e22e6d32a2139cd40d 100644
+--- a/packages/flutter/lib/src/rendering/selection.dart
++++ b/packages/flutter/lib/src/rendering/selection.dart
+@@ -6,6 +6,8 @@
+ /// @docImport 'package:flutter/material.dart';
+ library;
+ 
++import 'dart:math' as math;
++
+ import 'package:flutter/foundation.dart';
+ import 'package:vector_math/vector_math_64.dart';
+ 
+@@ -114,6 +116,8 @@ abstract class SelectionHandler implements ValueListenable<SelectionGeometry> {
+ 
+   /// The length of the content in this object.
+   int get contentLength;
++
++  Object? get separator;
+ }
+ 
+ /// This class stores the range information of the selection under a [Selectable]
+@@ -236,6 +240,8 @@ class SelectedContent with Diagnosticable {
+ /// See also:
+ ///  * [SelectableRegion], which provides an overview of selection system.
+ mixin Selectable implements SelectionHandler {
++  Object? get separator => null;
++
+   /// {@macro flutter.rendering.RenderObject.getTransformTo}
+   Matrix4 getTransformTo(RenderObject? ancestor);
+ 
+@@ -356,10 +362,19 @@ abstract final class SelectionUtils {
+     Rect targetRect,
+     Offset point, {
+     TextDirection direction = TextDirection.ltr,
++    bool isSingle = false,
+   }) {
+     if (targetRect.contains(point)) {
+       return point;
+     }
++
++    if (isSingle || (point.dy >= targetRect.top && point.dy <= targetRect.bottom)) {
++      return Offset(
++        math.min(point.dx, targetRect.right),
++        math.min(point.dy, targetRect.bottom - .1),
++      );
++    }
++
+     if (point.dy <= targetRect.top ||
+         point.dy <= targetRect.bottom && point.dx <= targetRect.left) {
+       // Area 1
+@@ -520,9 +535,10 @@ class SelectionEdgeUpdateEvent extends SelectionEvent {
+   ///
+   /// The [granularity] contains the granularity which the selection edge should move by.
+   /// This value defaults to [TextGranularity.character].
+-  const SelectionEdgeUpdateEvent.forStart({
++  SelectionEdgeUpdateEvent.forStart({
+     required this.globalPosition,
+     TextGranularity? granularity,
++    this.fromDrag = false,
+   }) : granularity = granularity ?? TextGranularity.character,
+        super._(SelectionEventType.startEdgeUpdate);
+ 
+@@ -532,9 +548,10 @@ class SelectionEdgeUpdateEvent extends SelectionEvent {
+   ///
+   /// The [granularity] contains the granularity which the selection edge should move by.
+   /// This value defaults to [TextGranularity.character].
+-  const SelectionEdgeUpdateEvent.forEnd({
++  SelectionEdgeUpdateEvent.forEnd({
+     required this.globalPosition,
+     TextGranularity? granularity,
++    this.fromDrag = false,
+   }) : granularity = granularity ?? TextGranularity.character,
+        super._(SelectionEventType.endEdgeUpdate);
+ 
+@@ -547,6 +564,10 @@ class SelectionEdgeUpdateEvent extends SelectionEvent {
+   ///
+   /// Defaults to [TextGranularity.character].
+   final TextGranularity granularity;
++
++  bool isSingle = false;
++
++  final bool fromDrag;
+ }
+ 
+ /// Extends the start or end of the selection by a given [TextGranularity].
+diff --git a/packages/flutter/lib/src/widgets/draggable_scrollable_sheet.dart b/packages/flutter/lib/src/widgets/draggable_scrollable_sheet.dart
+index 0b22c6cc8eb08d31a740ff77dbdd8be4c093cf47..94c545b34b54ab40fa4dfad0411c17944565ba12 100644
+--- a/packages/flutter/lib/src/widgets/draggable_scrollable_sheet.dart
++++ b/packages/flutter/lib/src/widgets/draggable_scrollable_sheet.dart
+@@ -312,6 +312,7 @@ class DraggableScrollableSheet extends StatefulWidget {
+     this.snapAnimationDuration,
+     this.controller,
+     this.shouldCloseOnMinExtent = true,
++    this.initialScrollOffset = 0.0,
+     required this.builder,
+   }) : assert(minChildSize >= 0.0),
+        assert(maxChildSize <= 1.0),
+@@ -319,6 +320,8 @@ class DraggableScrollableSheet extends StatefulWidget {
+        assert(initialChildSize <= maxChildSize),
+        assert(snapAnimationDuration == null || snapAnimationDuration > Duration.zero);
+ 
++  final double initialScrollOffset;
++
+   /// The initial fractional value of the parent container's height to use when
+   /// displaying the widget.
+   ///
+@@ -645,9 +648,15 @@ class _DraggableSheetExtent {
+   }
+ }
+ 
++typedef DraggableScrollableSheetState = _DraggableScrollableSheetState;
++
+ class _DraggableScrollableSheetState extends State<DraggableScrollableSheet> {
+   late _DraggableScrollableSheetScrollController _scrollController;
++  set scrollController(_DraggableScrollableSheetScrollController controller) {
++    _scrollController = controller;
++  }
+   late _DraggableSheetExtent _extent;
++  _DraggableSheetExtent get extent => _extent;
+ 
+   @override
+   void initState() {
+@@ -661,10 +670,17 @@ class _DraggableScrollableSheetState extends State<DraggableScrollableSheet> {
+       initialSize: widget.initialChildSize,
+       shouldCloseOnMinExtent: widget.shouldCloseOnMinExtent,
+     );
+-    _scrollController = _DraggableScrollableSheetScrollController(extent: _extent);
++    initScrollController();
+     widget.controller?._attach(_scrollController);
+   }
+ 
++  void initScrollController() {
++    _scrollController = _DraggableScrollableSheetScrollController(
++      extent: _extent,
++      initialScrollOffset: widget.initialScrollOffset,
++    );
++  }
++
+   List<double> _impliedSnapSizes() {
+     for (var index = 0; index < (widget.snapSizes?.length ?? 0); index += 1) {
+       final double snapSize = widget.snapSizes![index];
+@@ -800,8 +816,11 @@ class _DraggableScrollableSheetState extends State<DraggableScrollableSheet> {
+ ///  * [PrimaryScrollController], which can be used to establish a
+ ///    [_DraggableScrollableSheetScrollController] as the primary controller for
+ ///    descendants.
++
++typedef DraggableScrollableSheetScrollController = _DraggableScrollableSheetScrollController;
++
+ class _DraggableScrollableSheetScrollController extends ScrollController {
+-  _DraggableScrollableSheetScrollController({required this.extent});
++  _DraggableScrollableSheetScrollController({required this.extent, super.initialScrollOffset});
+ 
+   _DraggableSheetExtent extent;
+   VoidCallback? onPositionDetached;
+@@ -817,6 +836,7 @@ class _DraggableScrollableSheetScrollController extends ScrollController {
+       context: context,
+       oldPosition: oldPosition,
+       getExtent: () => extent,
++      initialPixels: initialScrollOffset,
+     );
+   }
+ 
+@@ -862,12 +882,16 @@ class _DraggableScrollableSheetScrollController extends ScrollController {
+ /// See also:
+ ///
+ ///  * [_DraggableScrollableSheetScrollController], which uses this as its [ScrollPosition].
++
++typedef DraggableScrollableSheetScrollPosition = _DraggableScrollableSheetScrollPosition;
++
+ class _DraggableScrollableSheetScrollPosition extends ScrollPositionWithSingleContext {
+   _DraggableScrollableSheetScrollPosition({
+     required super.physics,
+     required super.context,
+     super.oldPosition,
+     required this.getExtent,
++    super.initialPixels,
+   });
+ 
+   VoidCallback? _dragCancelCallback;
+diff --git a/packages/flutter/lib/src/widgets/editable_text.dart b/packages/flutter/lib/src/widgets/editable_text.dart
+index 949c758c951de38cdc8dd75662bac828b06b3ef9..cadefff4c3c1316432bb29078000bc99910e2714 100644
+--- a/packages/flutter/lib/src/widgets/editable_text.dart
++++ b/packages/flutter/lib/src/widgets/editable_text.dart
+@@ -2104,7 +2104,7 @@ class EditableText extends StatefulWidget {
+       }
+       return ui.BoxWidthStyle.tight;
+     }
+-    return ui.BoxWidthStyle.max;
++    return ui.BoxWidthStyle.tight;
+   }
+ 
+   /// The default value for [stylusHandwritingEnabled].
+@@ -5147,7 +5147,9 @@ class EditableTextState extends State<EditableText>
+   void userUpdateTextEditingValue(TextEditingValue value, SelectionChangedCause? cause) {
+     // Compare the current TextEditingValue with the pre-format new
+     // TextEditingValue value, in case the formatter would reject the change.
+-    final shouldShowCaret = widget.readOnly ? _value.selection != value.selection : _value != value;
++    final shouldShowCaret =
++        cause != SelectionChangedCause.drag &&
++        (widget.readOnly ? _value.selection != value.selection : _value != value);
+     if (shouldShowCaret) {
+       _scheduleShowCaretOnScreen(withAnimation: true);
+     }
+diff --git a/packages/flutter/lib/src/widgets/gesture_detector.dart b/packages/flutter/lib/src/widgets/gesture_detector.dart
+index 158e7c321eda7f81218cc3d76de522a59a5dac03..b0d1205895f41cf98ae1c79395bbdf34173f9adb 100644
+--- a/packages/flutter/lib/src/widgets/gesture_detector.dart
++++ b/packages/flutter/lib/src/widgets/gesture_detector.dart
+@@ -1430,7 +1430,7 @@ class RawGestureDetector extends StatefulWidget {
+ }
+ 
+ /// State for a [RawGestureDetector].
+-class RawGestureDetectorState extends State<RawGestureDetector> {
++class RawGestureDetectorState<T extends RawGestureDetector> extends State<T> {
+   Map<Type, GestureRecognizer>? _recognizers = const <Type, GestureRecognizer>{};
+   SemanticsGestureDelegate? _semantics;
+ 
+@@ -1444,7 +1444,7 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
+ 
+   @protected
+   @override
+-  void didUpdateWidget(RawGestureDetector oldWidget) {
++  void didUpdateWidget(T oldWidget) {
+     super.didUpdateWidget(oldWidget);
+     if (!(oldWidget.semantics == null && widget.semantics == null)) {
+       _semantics = widget.semantics ?? _DefaultSemanticsGestureDelegate(this);
+@@ -1636,6 +1636,109 @@ class RawGestureDetectorState extends State<RawGestureDetector> {
+   }
+ }
+ 
++class NestedRawGestureDetector extends RawGestureDetector {
++  const NestedRawGestureDetector({
++    super.key,
++    super.child,
++    super.gestures,
++    super.behavior,
++    super.excludeFromSemantics,
++    super.semantics,
++    required this.ignoring,
++  });
++
++  final ValueGetter<bool> ignoring;
++
++  @override
++  RawGestureDetectorState createState() => NestedRawGestureDetectorState();
++}
++
++class NestedRawGestureDetectorState extends RawGestureDetectorState<NestedRawGestureDetector> {
++  @override
++  Widget build(BuildContext context) {
++    Widget result = NestedListener(
++      onPointerDown: _handlePointerDown,
++      onPointerPanZoomStart: _handlePointerPanZoomStart,
++      behavior: widget.behavior ?? _defaultBehavior,
++      ignoring: widget.ignoring,
++      child: widget.child,
++    );
++    if (!widget.excludeFromSemantics) {
++      result = _GestureSemantics(
++        behavior: widget.behavior ?? _defaultBehavior,
++        assignSemantics: _updateSemanticsForRenderObject,
++        child: result,
++      );
++    }
++    return result;
++  }
++}
++
++class NestedListener extends Listener {
++  const NestedListener({
++    super.key,
++    super.onPointerDown,
++    super.onPointerMove,
++    super.onPointerUp,
++    super.onPointerHover,
++    super.onPointerCancel,
++    super.onPointerPanZoomStart,
++    super.onPointerPanZoomUpdate,
++    super.onPointerPanZoomEnd,
++    super.onPointerSignal,
++    super.behavior,
++    required this.ignoring,
++    super.child,
++  });
++
++  final ValueGetter<bool> ignoring;
++
++  @override
++  RenderPointerListener createRenderObject(BuildContext context) {
++    return _RenderPointerListener(
++      onPointerDown: onPointerDown,
++      onPointerMove: onPointerMove,
++      onPointerUp: onPointerUp,
++      onPointerHover: onPointerHover,
++      onPointerCancel: onPointerCancel,
++      onPointerPanZoomStart: onPointerPanZoomStart,
++      onPointerPanZoomUpdate: onPointerPanZoomUpdate,
++      onPointerPanZoomEnd: onPointerPanZoomEnd,
++      onPointerSignal: onPointerSignal,
++      behavior: behavior,
++      ignoring: ignoring,
++    );
++  }
++
++  @override
++  void updateRenderObject(BuildContext context, _RenderPointerListener renderObject) {
++    super.updateRenderObject(context, renderObject);
++    renderObject.ignoring = ignoring;
++  }
++}
++
++class _RenderPointerListener extends RenderPointerListener {
++  _RenderPointerListener({
++    super.onPointerDown,
++    super.onPointerMove,
++    super.onPointerUp,
++    super.onPointerHover,
++    super.onPointerCancel,
++    super.onPointerPanZoomStart,
++    super.onPointerPanZoomUpdate,
++    super.onPointerPanZoomEnd,
++    super.onPointerSignal,
++    super.behavior,
++    required this.ignoring,
++    super.child,
++  });
++
++  ValueGetter<bool> ignoring;
++
++  @override
++  bool hitTestSelf(Offset position) => behavior == HitTestBehavior.opaque && ignoring();
++}
++
+ typedef _AssignSemantics = void Function(RenderSemanticsGestureHandler);
+ 
+ class _GestureSemantics extends SingleChildRenderObjectWidget {
+diff --git a/packages/flutter/lib/src/widgets/image.dart b/packages/flutter/lib/src/widgets/image.dart
+index b0444c17c7818b495c1b8b21f1c91ea01bfccb66..edb7dc0e7d5dfdb364c5203bbf2a063738d850b6 100644
+--- a/packages/flutter/lib/src/widgets/image.dart
++++ b/packages/flutter/lib/src/widgets/image.dart
+@@ -1144,7 +1144,7 @@ class _ImageState extends State<Image> with WidgetsBindingObserver {
+     _updateInvertColors();
+     _resolveImage();
+ 
+-    _isPaused = !TickerMode.of(context) || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
++    _isPaused = !TickerMode.of(context);
+ 
+     if (_isPaused && _frameNumber != null) {
+       _stopListeningToStream(keepStreamAlive: true);
+diff --git a/packages/flutter/lib/src/widgets/layout_builder.dart b/packages/flutter/lib/src/widgets/layout_builder.dart
+index 82cd3014a26c73d6ac66a108c1fa20e205914962..749a61b84cad79fcbc565d9fda466ab23e79c3b4 100644
+--- a/packages/flutter/lib/src/widgets/layout_builder.dart
++++ b/packages/flutter/lib/src/widgets/layout_builder.dart
+@@ -115,43 +115,43 @@ class _LayoutBuilderElement<LayoutInfoType> extends RenderObjectElement {
+ 
+   Element? _child;
+ 
+-  @override
+-  BuildScope get buildScope => _buildScope;
++  // @override
++  // BuildScope get buildScope => _buildScope;
+ 
+-  late final BuildScope _buildScope = BuildScope(scheduleRebuild: _scheduleRebuild);
++  // late final BuildScope _buildScope = BuildScope(scheduleRebuild: _scheduleRebuild);
+ 
+   // To schedule a rebuild, markNeedsLayout needs to be called on this Element's
+   // render object (as the rebuilding is done in its performLayout call). However,
+   // the render tree should typically be kept clean during the postFrameCallbacks
+   // and the idle phase, so the layout data can be safely read.
+-  bool _deferredCallbackScheduled = false;
+-  void _scheduleRebuild() {
+-    if (_deferredCallbackScheduled) {
+-      return;
+-    }
+-
+-    final bool deferMarkNeedsLayout = switch (SchedulerBinding.instance.schedulerPhase) {
+-      SchedulerPhase.idle || SchedulerPhase.postFrameCallbacks => true,
+-      SchedulerPhase.transientCallbacks ||
+-      SchedulerPhase.midFrameMicrotasks ||
+-      SchedulerPhase.persistentCallbacks => false,
+-    };
+-    if (!deferMarkNeedsLayout) {
+-      renderObject.scheduleLayoutCallback();
+-      return;
+-    }
+-    _deferredCallbackScheduled = true;
+-    SchedulerBinding.instance.scheduleFrameCallback(_frameCallback);
+-  }
+-
+-  void _frameCallback(Duration timestamp) {
+-    _deferredCallbackScheduled = false;
+-    // This method is only called when the render tree is stable, if the Element
+-    // is deactivated it will never be reincorporated back to the tree.
+-    if (mounted) {
+-      renderObject.scheduleLayoutCallback();
+-    }
+-  }
++  // bool _deferredCallbackScheduled = false;
++  // void _scheduleRebuild() {
++  //   if (_deferredCallbackScheduled) {
++  //     return;
++  //   }
++
++  //   final bool deferMarkNeedsLayout = switch (SchedulerBinding.instance.schedulerPhase) {
++  //     SchedulerPhase.idle || SchedulerPhase.postFrameCallbacks => true,
++  //     SchedulerPhase.transientCallbacks ||
++  //     SchedulerPhase.midFrameMicrotasks ||
++  //     SchedulerPhase.persistentCallbacks => false,
++  //   };
++  //   if (!deferMarkNeedsLayout) {
++  //     renderObject.scheduleLayoutCallback();
++  //     return;
++  //   }
++  //   _deferredCallbackScheduled = true;
++  //   SchedulerBinding.instance.scheduleFrameCallback(_frameCallback);
++  // }
++
++  // void _frameCallback(Duration timestamp) {
++  //   _deferredCallbackScheduled = false;
++  //   // This method is only called when the render tree is stable, if the Element
++  //   // is deactivated it will never be reincorporated back to the tree.
++  //   if (mounted) {
++  //     renderObject.scheduleLayoutCallback();
++  //   }
++  // }
+ 
+   @override
+   void visitChildren(ElementVisitor visitor) {
+diff --git a/packages/flutter/lib/src/widgets/modal_barrier.dart b/packages/flutter/lib/src/widgets/modal_barrier.dart
+index 445175c2e07ce6d101d83858e0fa59ef1234ff66..452dea0fc77b0d4912d0ee5c415738e094eed95c 100644
+--- a/packages/flutter/lib/src/widgets/modal_barrier.dart
++++ b/packages/flutter/lib/src/widgets/modal_barrier.dart
+@@ -131,6 +131,7 @@ class ModalBarrier extends StatelessWidget {
+     super.key,
+     this.color,
+     this.dismissible = true,
++    this.isMenu = false,
+     this.onDismiss,
+     this.semanticsLabel,
+     this.barrierSemanticsDismissible = true,
+@@ -159,6 +160,8 @@ class ModalBarrier extends StatelessWidget {
+   ///    [ModalBarrier] built by [ModalRoute] pages.
+   final bool dismissible;
+ 
++  final bool isMenu;
++
+   /// {@template flutter.widgets.ModalBarrier.onDismiss}
+   /// Called when the barrier is being dismissed.
+   ///
+@@ -264,7 +267,11 @@ class ModalBarrier extends StatelessWidget {
+     return BlockSemantics(
+       child: ExcludeSemantics(
+         excluding: excluding,
+-        child: _ModalBarrierGestureDetector(onDismiss: handleDismiss, child: barrier),
++        child: _ModalBarrierGestureDetector(
++          onAnyTapUp: isMenu ? null : handleDismiss,
++          onAnyTapDown: isMenu ? handleDismiss : null,
++          child: barrier,
++        ),
+       ),
+     );
+   }
+@@ -292,6 +299,7 @@ class AnimatedModalBarrier extends AnimatedWidget {
+     super.key,
+     required Animation<Color?> color,
+     this.dismissible = true,
++    this.isMenu = false,
+     this.semanticsLabel,
+     this.barrierSemanticsDismissible,
+     this.onDismiss,
+@@ -315,6 +323,8 @@ class AnimatedModalBarrier extends AnimatedWidget {
+   ///    [AnimatedModalBarrier] built by [ModalRoute] pages.
+   final bool dismissible;
+ 
++  final bool isMenu;
++
+   /// Semantics label used for the barrier if it is [dismissible].
+   ///
+   /// The semantics label is read out by accessibility tools (e.g. TalkBack
+@@ -359,6 +369,7 @@ class AnimatedModalBarrier extends AnimatedWidget {
+       onDismiss: onDismiss,
+       clipDetailsNotifier: clipDetailsNotifier,
+       semanticsOnTapHint: semanticsOnTapHint,
++      isMenu: isMenu,
+     );
+   }
+ }
+@@ -372,10 +383,12 @@ class _AnyTapGestureRecognizer extends BaseTapGestureRecognizer {
+ 
+   VoidCallback? onAnyTapUp;
+ 
++  VoidCallback? onAnyTapDown;
++
+   @protected
+   @override
+   bool isPointerAllowed(PointerDownEvent event) {
+-    if (onAnyTapUp == null) {
++    if (onAnyTapUp == null && onAnyTapDown == null) {
+       return false;
+     }
+     return super.isPointerAllowed(event);
+@@ -384,7 +397,9 @@ class _AnyTapGestureRecognizer extends BaseTapGestureRecognizer {
+   @protected
+   @override
+   void handleTapDown({PointerDownEvent? down}) {
+-    // Do nothing.
++    if (onAnyTapDown != null) {
++      invokeCallback('onAnyTapDown', onAnyTapDown!);
++    }
+   }
+ 
+   @protected
+@@ -401,28 +416,41 @@ class _AnyTapGestureRecognizer extends BaseTapGestureRecognizer {
+     // Do nothing.
+   }
+ 
++  // @override
++  // void handleEvent(PointerEvent event) {
++  //   assert(state != GestureRecognizerState.ready);
++  //   if (state == GestureRecognizerState.possible && event.pointer == primaryPointer) {
++  //     handlePrimaryPointer(event);
++  //   }
++  //   stopTrackingIfPointerNoLongerDown(event);
++  // }
++
+   @override
+   String get debugDescription => 'any tap';
+ }
+ 
+ class _AnyTapGestureRecognizerFactory extends GestureRecognizerFactory<_AnyTapGestureRecognizer> {
+-  const _AnyTapGestureRecognizerFactory({this.onAnyTapUp});
++  const _AnyTapGestureRecognizerFactory({this.onAnyTapUp, this.onAnyTapDown});
+ 
+   final VoidCallback? onAnyTapUp;
+ 
++  final VoidCallback? onAnyTapDown;
++
+   @override
+   _AnyTapGestureRecognizer constructor() => _AnyTapGestureRecognizer();
+ 
+   @override
+   void initializer(_AnyTapGestureRecognizer instance) {
+-    instance.onAnyTapUp = onAnyTapUp;
++    instance
++      ..onAnyTapUp = onAnyTapUp
++      ..onAnyTapDown = onAnyTapDown;
+   }
+ }
+ 
+ // A GestureDetector used by ModalBarrier. It only has one callback,
+ // [onAnyTapDown], which recognizes tap down unconditionally.
+ class _ModalBarrierGestureDetector extends StatelessWidget {
+-  const _ModalBarrierGestureDetector({required this.child, required this.onDismiss});
++  const _ModalBarrierGestureDetector({required this.child, this.onAnyTapUp, this.onAnyTapDown});
+ 
+   /// The widget below this widget in the tree.
+   /// See [RawGestureDetector.child].
+@@ -430,12 +458,17 @@ class _ModalBarrierGestureDetector extends StatelessWidget {
+ 
+   /// Immediately called when an event that should dismiss the modal barrier
+   /// has happened.
+-  final VoidCallback onDismiss;
++  final VoidCallback? onAnyTapUp;
++
++  final VoidCallback? onAnyTapDown;
+ 
+   @override
+   Widget build(BuildContext context) {
+     final gestures = <Type, GestureRecognizerFactory>{
+-      _AnyTapGestureRecognizer: _AnyTapGestureRecognizerFactory(onAnyTapUp: onDismiss),
++      _AnyTapGestureRecognizer: _AnyTapGestureRecognizerFactory(
++        onAnyTapUp: onAnyTapUp,
++        onAnyTapDown: onAnyTapDown,
++      ),
+     };
+ 
+     return RawGestureDetector(gestures: gestures, behavior: HitTestBehavior.opaque, child: child);
+diff --git a/packages/flutter/lib/src/widgets/navigator.dart b/packages/flutter/lib/src/widgets/navigator.dart
+index 680cc9e7835a5282244c1316930adf49a029fdcb..9aefdd11a42f938af8a4f0c0393244b9c1e95fe1 100644
+--- a/packages/flutter/lib/src/widgets/navigator.dart
++++ b/packages/flutter/lib/src/widgets/navigator.dart
+@@ -5671,7 +5671,9 @@ class NavigatorState extends State<Navigator> with TickerProviderStateMixin, Res
+       _debugLocked = false;
+       return true;
+     }());
+-    _afterNavigation(entry.route);
++    if (entry.currentState == _RouteLifecycle.popping) {
++      _afterNavigation(entry.route);
++    }
+   }
+ 
+   /// Calls [pop] repeatedly until the predicate returns true.
+diff --git a/packages/flutter/lib/src/widgets/page_view.dart b/packages/flutter/lib/src/widgets/page_view.dart
+index b7afb232d199d2ce272e4c6dba48c7fa63289f64..1fc29ac818a8e63033f060689609d89e19d7c49d 100644
+--- a/packages/flutter/lib/src/widgets/page_view.dart
++++ b/packages/flutter/lib/src/widgets/page_view.dart
+@@ -11,7 +11,7 @@ library;
+ import 'dart:math' as math;
+ 
+ import 'package:flutter/foundation.dart';
+-import 'package:flutter/gestures.dart' show DragStartBehavior;
++import 'package:flutter/gestures.dart' show DragStartBehavior, HorizontalDragGestureRecognizer;
+ import 'package:flutter/rendering.dart';
+ 
+ import 'basic.dart';
+@@ -700,6 +700,7 @@ class PageView extends StatefulWidget {
+     this.hitTestBehavior = HitTestBehavior.opaque,
+     this.scrollBehavior,
+     this.padEnds = true,
++    this.horizontalDragGestureRecognizer = HorizontalDragGestureRecognizer.new,
+   }) : assert(
+          scrollCacheExtent == null || (scrollCacheExtent.value > 0.0) == allowImplicitScrolling,
+          'scrollCacheExtent and allowImplicitScrolling must be consistent: '
+@@ -754,6 +755,7 @@ class PageView extends StatefulWidget {
+     this.hitTestBehavior = HitTestBehavior.opaque,
+     this.scrollBehavior,
+     this.padEnds = true,
++    this.horizontalDragGestureRecognizer = HorizontalDragGestureRecognizer.new,
+   }) : assert(
+          scrollCacheExtent == null || (scrollCacheExtent.value > 0.0) == allowImplicitScrolling,
+          'scrollCacheExtent and allowImplicitScrolling must be consistent: '
+@@ -796,6 +798,7 @@ class PageView extends StatefulWidget {
+     this.hitTestBehavior = HitTestBehavior.opaque,
+     this.scrollBehavior,
+     this.padEnds = true,
++    this.horizontalDragGestureRecognizer = HorizontalDragGestureRecognizer.new,
+   }) : assert(
+          scrollCacheExtent == null || (scrollCacheExtent.value > 0.0) == allowImplicitScrolling,
+          'scrollCacheExtent and allowImplicitScrolling must be consistent: '
+@@ -805,6 +808,8 @@ class PageView extends StatefulWidget {
+        scrollCacheExtent =
+            scrollCacheExtent ?? ScrollCacheExtent.viewport(allowImplicitScrolling ? 1.0 : 0.0);
+ 
++  final ValueGetter<HorizontalDragGestureRecognizer> horizontalDragGestureRecognizer;
++
+   /// {@template flutter.widgets.PageView.allowImplicitScrolling}
+   /// Controls whether the widget's pages will respond to
+   /// [RenderObject.showOnScreen], which will allow for implicit accessibility
+@@ -1024,6 +1029,7 @@ class _PageViewState extends State<PageView> {
+         physics: physics,
+         restorationId: widget.restorationId,
+         hitTestBehavior: widget.hitTestBehavior,
++        horizontalDragGestureRecognizer: widget.horizontalDragGestureRecognizer,
+         scrollBehavior:
+             widget.scrollBehavior ?? ScrollConfiguration.of(context).copyWith(scrollbars: false),
+         viewportBuilder: (BuildContext context, ViewportOffset position) {
+diff --git a/packages/flutter/lib/src/widgets/routes.dart b/packages/flutter/lib/src/widgets/routes.dart
+index 5c0b9b127fa4c4cbc615e40c58b3e41ef9d4ea29..a2814eb00288867eb16bc0e2fbc2d79329ea86fc 100644
+--- a/packages/flutter/lib/src/widgets/routes.dart
++++ b/packages/flutter/lib/src/widgets/routes.dart
+@@ -1738,6 +1738,8 @@ abstract class ModalRoute<T> extends TransitionRoute<T> with LocalHistoryRoute<T
+   /// {@endtemplate}
+   bool get barrierDismissible;
+ 
++  bool get isMenu => false;
++
+   /// Whether the semantics of the modal barrier are included in the
+   /// semantics tree.
+   ///
+@@ -2314,6 +2316,7 @@ abstract class ModalRoute<T> extends TransitionRoute<T> with LocalHistoryRoute<T
+             barrierDismissible, // changedInternalState is called if barrierDismissible updates
+         semanticsLabel: barrierLabel, // changedInternalState is called if barrierLabel updates
+         barrierSemanticsDismissible: semanticsDismissible,
++        isMenu: isMenu,
+       );
+     } else {
+       barrier = ModalBarrier(
+@@ -2321,6 +2324,7 @@ abstract class ModalRoute<T> extends TransitionRoute<T> with LocalHistoryRoute<T
+             barrierDismissible, // changedInternalState is called if barrierDismissible updates
+         semanticsLabel: barrierLabel, // changedInternalState is called if barrierLabel updates
+         barrierSemanticsDismissible: semanticsDismissible,
++        isMenu: isMenu,
+       );
+     }
+ 
+diff --git a/packages/flutter/lib/src/widgets/scroll_position_with_single_context.dart b/packages/flutter/lib/src/widgets/scroll_position_with_single_context.dart
+index 2991edbb379d89f2d24f14bd5df1b28ccdd42ab3..64658020df92c9575b7411e5a453a0a1ffc020d5 100644
+--- a/packages/flutter/lib/src/widgets/scroll_position_with_single_context.dart
++++ b/packages/flutter/lib/src/widgets/scroll_position_with_single_context.dart
+@@ -127,8 +127,12 @@ class ScrollPositionWithSingleContext extends ScrollPosition implements ScrollAc
+ 
+   @override
+   void applyUserOffset(double delta) {
+-    updateUserScrollDirection(delta > 0.0 ? ScrollDirection.forward : ScrollDirection.reverse);
+-    setPixels(pixels - physics.applyPhysicsToUserOffset(this, delta));
++    final newPixels = pixels - physics.applyPhysicsToUserOffset(this, delta);
++    if (_userScrollDirection == ScrollDirection.idle || (newPixels != setPixels(newPixels) && newPixels >= 0)) {
++      updateUserScrollDirection(
++        delta > 0.0 ? ScrollDirection.forward : ScrollDirection.reverse,
++      );
++    }
+   }
+ 
+   @override
+diff --git a/packages/flutter/lib/src/widgets/scrollable.dart b/packages/flutter/lib/src/widgets/scrollable.dart
+index 05e5a7e5cf4f285f97b9f110cf4bf868ff560202..d83ca1198a1f6fad8b2a1e2f3b300a0764285844 100644
+--- a/packages/flutter/lib/src/widgets/scrollable.dart
++++ b/packages/flutter/lib/src/widgets/scrollable.dart
+@@ -45,6 +45,8 @@ import 'viewport.dart';
+ 
+ export 'package:flutter/physics.dart' show Tolerance;
+ 
++const _nestedOuterDebugLabel = 'outer';
++
+ // Examples can assume:
+ // late BuildContext context;
+ 
+@@ -134,8 +136,11 @@ class Scrollable extends StatefulWidget {
+     this.scrollBehavior,
+     this.clipBehavior = Clip.hardEdge,
+     this.hitTestBehavior = HitTestBehavior.opaque,
++    this.horizontalDragGestureRecognizer = HorizontalDragGestureRecognizer.new,
+   }) : assert(semanticChildCount == null || semanticChildCount >= 0);
+ 
++  final ValueGetter<HorizontalDragGestureRecognizer> horizontalDragGestureRecognizer;
++
+   /// {@template flutter.widgets.Scrollable.axisDirection}
+   /// The direction in which this widget scrolls.
+   ///
+@@ -767,6 +772,7 @@ class ScrollableState extends State<Scrollable>
+   Map<Type, GestureRecognizerFactory> _gestureRecognizers =
+       const <Type, GestureRecognizerFactory>{};
+   bool _shouldIgnorePointer = false;
++  bool get shouldIgnorePointer => _shouldIgnorePointer;
+ 
+   bool? _lastCanDrag;
+   Axis? _lastAxisDirection;
+@@ -787,11 +793,13 @@ class ScrollableState extends State<Scrollable>
+       switch (widget.axis) {
+         case Axis.vertical:
+           _gestureRecognizers = <Type, GestureRecognizerFactory>{
+-            VerticalDragGestureRecognizer:
+-                GestureRecognizerFactoryWithHandlers<VerticalDragGestureRecognizer>(
+-                  () => VerticalDragGestureRecognizer(supportedDevices: _configuration.dragDevices),
+-                  (VerticalDragGestureRecognizer instance) {
++            _VerticalDragGestureRecognizer:
++                GestureRecognizerFactoryWithHandlers<_VerticalDragGestureRecognizer>(
++                  () =>
++                      _VerticalDragGestureRecognizer(supportedDevices: _configuration.dragDevices),
++                  (_VerticalDragGestureRecognizer instance) {
+                     instance
++                      ..isDyAllowed = _isDyAllowed
+                       ..onDown = _handleDragDown
+                       ..onStart = _handleDragStart
+                       ..onUpdate = _handleDragUpdate
+@@ -812,8 +820,7 @@ class ScrollableState extends State<Scrollable>
+           _gestureRecognizers = <Type, GestureRecognizerFactory>{
+             HorizontalDragGestureRecognizer:
+                 GestureRecognizerFactoryWithHandlers<HorizontalDragGestureRecognizer>(
+-                  () =>
+-                      HorizontalDragGestureRecognizer(supportedDevices: _configuration.dragDevices),
++                  widget.horizontalDragGestureRecognizer,
+                   (HorizontalDragGestureRecognizer instance) {
+                     instance
+                       ..onDown = _handleDragDown
+@@ -860,6 +867,10 @@ class ScrollableState extends State<Scrollable>
+   Drag? _drag;
+   ScrollHoldController? _hold;
+ 
++  bool _isDyAllowed(double dy) {
++    return position.viewportDimension - dy > 30;
++  }
++
+   void _handleDragDown(DragDownDetails details) {
+     assert(_drag == null);
+     assert(_hold == null);
+@@ -1021,26 +1032,37 @@ class ScrollableState extends State<Scrollable>
+     //
+     // Since notificationContext is pointing to _gestureDetectorKey.context, _ScrollableScope
+     // must be placed above the widget using it: RawGestureDetector
+-    Widget result = _ScrollableScope(
++    Widget result = Semantics(
++      explicitChildNodes: !widget.excludeFromSemantics,
++      child: IgnorePointer(
++        key: _ignorePointerKey,
++        ignoring: _shouldIgnorePointer,
++        child: widget.viewportBuilder(context, position),
++      ),
++    );
++    if (_effectiveScrollController.debugLabel == _nestedOuterDebugLabel) {
++      result = NestedRawGestureDetector(
++        key: _gestureDetectorKey,
++        gestures: _gestureRecognizers,
++        behavior: widget.hitTestBehavior,
++        excludeFromSemantics: widget.excludeFromSemantics,
++        ignoring: () => _shouldIgnorePointer,
++        child: result,
++      );
++    } else {
++      result = RawGestureDetector(
++        key: _gestureDetectorKey,
++        gestures: _gestureRecognizers,
++        behavior: widget.hitTestBehavior,
++        excludeFromSemantics: widget.excludeFromSemantics,
++        child: result,
++      );
++    }
++
++    result = _ScrollableScope(
+       scrollable: this,
+       position: position,
+-      child: Listener(
+-        onPointerSignal: _receivedPointerSignal,
+-        child: RawGestureDetector(
+-          key: _gestureDetectorKey,
+-          gestures: _gestureRecognizers,
+-          behavior: widget.hitTestBehavior,
+-          excludeFromSemantics: widget.excludeFromSemantics,
+-          child: Semantics(
+-            explicitChildNodes: !widget.excludeFromSemantics,
+-            child: IgnorePointer(
+-              key: _ignorePointerKey,
+-              ignoring: _shouldIgnorePointer,
+-              child: widget.viewportBuilder(context, position),
+-            ),
+-          ),
+-        ),
+-      ),
++      child: Listener(onPointerSignal: _receivedPointerSignal, child: result),
+     );
+ 
+     if (!widget.excludeFromSemantics) {
+@@ -1178,6 +1200,9 @@ class _ScrollableSelectionContainerDelegate extends MultiSelectableSelectionCont
+     _position.addListener(_scheduleLayoutChange);
+   }
+ 
++  @override
++  Object separator = '\n';
++
+   // Pointer drag is a single point, it should not have a size.
+   static const double _kDefaultDragTargetSize = 0;
+ 
+@@ -1277,6 +1302,7 @@ class _ScrollableSelectionContainerDelegate extends MultiSelectableSelectionCont
+       event = SelectionEdgeUpdateEvent.forEnd(
+         globalPosition: endOffset,
+         granularity: event.granularity,
++        fromDrag: event.fromDrag,
+       );
+     } else {
+       _currentDragStartRelatedToOrigin = _inferPositionRelatedToOrigin(event.globalPosition);
+@@ -1287,6 +1313,7 @@ class _ScrollableSelectionContainerDelegate extends MultiSelectableSelectionCont
+       event = SelectionEdgeUpdateEvent.forStart(
+         globalPosition: startOffset,
+         granularity: event.granularity,
++        fromDrag: event.fromDrag,
+       );
+     }
+     final SelectionResult result = super.handleSelectionEdgeUpdate(event);
+@@ -2553,3 +2580,39 @@ class _HorizontalInnerDimensionState extends ScrollableState {
+     return _configuration.buildOverscrollIndicator(context, child, details);
+   }
+ }
++
++typedef IsDyAllowed = bool Function(double dy);
++
++class _VerticalDragGestureRecognizer extends VerticalDragGestureRecognizer {
++  _VerticalDragGestureRecognizer({
++    super.debugOwner,
++    super.supportedDevices,
++    super.allowedButtonsFilter,
++  });
++
++  IsDyAllowed? isDyAllowed;
++
++  bool _isDyAllowed = true;
++
++  @override
++  bool isPointerAllowed(PointerEvent event) {
++    _isDyAllowed = isDyAllowed?.call(event.localPosition.dy) ?? true;
++    return super.isPointerAllowed(event);
++  }
++
++  @override
++  T? invokeCallback<T>(
++    String name,
++    RecognizerCallback<T> callback, {
++    String Function()? debugReport,
++  }) {
++    if (!_isDyAllowed) return null;
++    return super.invokeCallback(name, callback, debugReport: debugReport);
++  }
++
++  @override
++  void dispose() {
++    isDyAllowed = null;
++    super.dispose();
++  }
++}
+diff --git a/packages/flutter/lib/src/widgets/selectable_region.dart b/packages/flutter/lib/src/widgets/selectable_region.dart
+index be97aa351895150ca5ecc9244b37a4d0f10767d7..f2d7702a6d852863e439abcca289939ad26b1056 100644
+--- a/packages/flutter/lib/src/widgets/selectable_region.dart
++++ b/packages/flutter/lib/src/widgets/selectable_region.dart
+@@ -29,8 +29,10 @@ import 'framework.dart';
+ import 'gesture_detector.dart';
+ import 'magnifier.dart';
+ import 'media_query.dart';
++import 'notification_listener.dart';
+ import 'overlay.dart';
+ import 'platform_selectable_region_context_menu.dart';
++import 'scroll_notification.dart';
+ import 'selection_container.dart';
+ import 'tap_region.dart';
+ import 'text_editing_intents.dart';
+@@ -406,9 +408,11 @@ class SelectableRegionState extends State<SelectableRegion>
+   final LayerLink _startHandleLayerLink = LayerLink();
+   final LayerLink _endHandleLayerLink = LayerLink();
+   final LayerLink _toolbarLayerLink = LayerLink();
+-  final StaticSelectionContainerDelegate _selectionDelegate = StaticSelectionContainerDelegate();
++  final StaticSelectionContainerDelegate _selectionDelegate = StaticSelectionContainerDelegate(separator: '\n');
++  StaticSelectionContainerDelegate get selectionDelegate => _selectionDelegate;
+   // there should only ever be one selectable, which is the SelectionContainer.
+   Selectable? _selectable;
++  Selectable? get selectable => _selectable;
+ 
+   bool get _hasSelectionOverlayGeometry =>
+       _selectionDelegate.value.startSelectionPoint != null ||
+@@ -453,7 +457,7 @@ class SelectableRegionState extends State<SelectableRegion>
+   void initState() {
+     super.initState();
+     _focusNode.addListener(_handleFocusChanged);
+-    _initMouseGestureRecognizer();
++    // _initMouseGestureRecognizer();
+     _initTouchGestureRecognizer();
+     // Right clicks.
+     _gestureRecognizers[TapGestureRecognizer] =
+@@ -604,48 +608,32 @@ class SelectableRegionState extends State<SelectableRegion>
+   //
+   // This method should be used in all instances when details.consecutiveTapCount
+   // would be used.
+-  int _getEffectiveConsecutiveTapCount(int rawCount) {
+-    var maxConsecutiveTap = 3;
++  static int _getEffectiveConsecutiveTapCount(int rawCount) {
+     switch (defaultTargetPlatform) {
+       case TargetPlatform.android:
+       case TargetPlatform.fuchsia:
+-        if (_lastPointerDeviceKind != null && _lastPointerDeviceKind != PointerDeviceKind.mouse) {
+-          // When the pointer device kind is not precise like a mouse, native
+-          // Android resets the tap count at 2. For example, this is so the
+-          // selection can collapse on the third tap.
+-          maxConsecutiveTap = 2;
+-        }
+-        // From observation, these platforms reset their tap count to 0 when
+-        // the number of consecutive taps exceeds the max consecutive tap supported.
+-        // For example on native Android, when going past a triple click,
+-        // on the fourth click the selection is moved to the precise click
+-        // position, on the fifth click the word at the position is selected, and
+-        // on the sixth click the paragraph at the position is selected.
+-        return rawCount <= maxConsecutiveTap
+-            ? rawCount
+-            : (rawCount % maxConsecutiveTap == 0
+-                  ? maxConsecutiveTap
+-                  : rawCount % maxConsecutiveTap);
+       case TargetPlatform.linux:
+-        // From observation, these platforms reset their tap count to 0 when
+-        // the number of consecutive taps exceeds the max consecutive tap supported.
+-        // For example on Debian Linux with GTK, when going past a triple click,
+-        // on the fourth click the selection is moved to the precise click
+-        // position, on the fifth click the word at the position is selected, and
+-        // on the sixth click the paragraph at the position is selected.
+-        return rawCount <= maxConsecutiveTap
+-            ? rawCount
+-            : (rawCount % maxConsecutiveTap == 0
+-                  ? maxConsecutiveTap
+-                  : rawCount % maxConsecutiveTap);
++        // From observation, these platform's reset their tap count to 0 when
++        // the number of consecutive taps exceeds 3. For example on Debian Linux
++        // with GTK, when going past a triple click, on the fourth click the
++        // selection is moved to the precise click position, on the fifth click
++        // the word at the position is selected, and on the sixth click the
++        // paragraph at the position is selected.
++        return rawCount <= 3 ? rawCount : (rawCount % 3 == 0 ? 3 : rawCount % 3);
+       case TargetPlatform.iOS:
+       case TargetPlatform.macOS:
++        // From observation, these platform's either hold their tap count at 3.
++        // For example on macOS, when going past a triple click, the selection
++        // should be retained at the paragraph that was first selected on triple
++        // click.
++        return min(rawCount, 3);
+       case TargetPlatform.windows:
+-        // From observation, these platforms hold their tap count at the max
+-        // consecutive tap supported. For example on macOS, when going past a triple
+-        // click, the selection should be retained at the paragraph that was first
+-        // selected on triple click.
+-        return min(rawCount, maxConsecutiveTap);
++        // From observation, this platform's consecutive tap actions alternate
++        // between double click and triple click actions. For example, after a
++        // triple click has selected a paragraph, on the next click the word at
++        // the clicked position will be selected, and on the next click the
++        // paragraph at the position is selected.
++        return rawCount < 2 ? rawCount : 2 + rawCount % 2;
+     }
+   }
+ 
+@@ -687,12 +675,7 @@ class SelectableRegionState extends State<SelectableRegion>
+     // ancestor Scrollable gestures in common scenarios like a vertically scrolling list view.
+     _gestureRecognizers[TapAndHorizontalDragGestureRecognizer] =
+         GestureRecognizerFactoryWithHandlers<TapAndHorizontalDragGestureRecognizer>(
+-          () => TapAndHorizontalDragGestureRecognizer(
+-            debugOwner: this,
+-            supportedDevices: PointerDeviceKind.values.where((PointerDeviceKind device) {
+-              return device != PointerDeviceKind.mouse;
+-            }).toSet(),
+-          ),
++          () => TapAndHorizontalDragGestureRecognizer(debugOwner: this),
+           (TapAndHorizontalDragGestureRecognizer instance) {
+             instance
+               // iOS does not provide a device specific touch slop
+@@ -787,22 +770,8 @@ class SelectableRegionState extends State<SelectableRegion>
+             _selectionStatusNotifier.value = SelectableRegionSelectionStatus.changing;
+         }
+       case 3:
+-        switch (defaultTargetPlatform) {
+-          case TargetPlatform.android:
+-          case TargetPlatform.fuchsia:
+-          case TargetPlatform.iOS:
+-            if (details.kind != null && _isPrecisePointerDevice(details.kind!)) {
+-              // Triple tap on static text is only supported on mobile
+-              // platforms using a precise pointer device.
+-              _selectParagraphAt(offset: details.globalPosition);
+-              _selectionStatusNotifier.value = SelectableRegionSelectionStatus.changing;
+-            }
+-          case TargetPlatform.macOS:
+-          case TargetPlatform.linux:
+-          case TargetPlatform.windows:
+-            _selectParagraphAt(offset: details.globalPosition);
+-            _selectionStatusNotifier.value = SelectableRegionSelectionStatus.changing;
+-        }
++        _selectParagraphAt(offset: details.globalPosition);
++        _selectionStatusNotifier.value = SelectableRegionSelectionStatus.changing;
+     }
+     _updateSelectedContentIfNeeded();
+   }
+@@ -1054,10 +1023,10 @@ class SelectableRegionState extends State<SelectableRegion>
+       case TargetPlatform.windows:
+         // If _lastSecondaryTapDownPosition is within the current selection then
+         // keep the current selection, if not then collapse it.
+-        final bool lastSecondaryTapDownPositionWasOnActiveSelection = _positionIsOnActiveSelection(
+-          globalPosition: details.globalPosition,
+-        );
+-        if (lastSecondaryTapDownPositionWasOnActiveSelection) {
++        // final bool lastSecondaryTapDownPositionWasOnActiveSelection = _positionIsOnActiveSelection(
++        //   globalPosition: details.globalPosition,
++        // );
++        if (_selectionDelegate.value.selectionRects.isNotEmpty) {
+           // Restore _lastSecondaryTapDownPosition since it may be cleared if a user
+           // accesses contextMenuAnchors.
+           _lastSecondaryTapDownPosition = details.globalPosition;
+@@ -1110,7 +1079,7 @@ class SelectableRegionState extends State<SelectableRegion>
+   /// If the selectable subtree returns a [SelectionResult.pending], this method
+   /// continues to send [SelectionEdgeUpdateEvent]s every frame until the result
+   /// is not pending or users end their gestures.
+-  void _triggerSelectionEndEdgeUpdate({TextGranularity? textGranularity}) {
++  void _triggerSelectionEndEdgeUpdate({TextGranularity? textGranularity, bool fromDrag = false}) {
+     // This method can be called when the drag is not in progress. This can
+     // happen if the child scrollable returns SelectionResult.pending, and
+     // the selection area scheduled a selection update for the next frame, but
+@@ -1122,6 +1091,7 @@ class SelectableRegionState extends State<SelectableRegion>
+           SelectionEdgeUpdateEvent.forEnd(
+             globalPosition: _selectionEndPosition!,
+             granularity: textGranularity,
++            fromDrag: fromDrag,
+           ),
+         ) ==
+         SelectionResult.pending) {
+@@ -1164,7 +1134,7 @@ class SelectableRegionState extends State<SelectableRegion>
+   /// If the selectable subtree returns a [SelectionResult.pending], this method
+   /// continues to send [SelectionEdgeUpdateEvent]s every frame until the result
+   /// is not pending or users end their gestures.
+-  void _triggerSelectionStartEdgeUpdate({TextGranularity? textGranularity}) {
++  void _triggerSelectionStartEdgeUpdate({TextGranularity? textGranularity, bool fromDrag = false}) {
+     // This method can be called when the drag is not in progress. This can
+     // happen if the child scrollable returns SelectionResult.pending, and
+     // the selection area scheduled a selection update for the next frame, but
+@@ -1176,6 +1146,7 @@ class SelectableRegionState extends State<SelectableRegion>
+           SelectionEdgeUpdateEvent.forStart(
+             globalPosition: _selectionStartPosition!,
+             granularity: textGranularity,
++            fromDrag: fromDrag,
+           ),
+         ) ==
+         SelectionResult.pending) {
+@@ -1221,7 +1192,7 @@ class SelectableRegionState extends State<SelectableRegion>
+     _selectionStartPosition =
+         _selectionStartHandleDragPosition -
+         Offset(0, _selectionDelegate.value.startSelectionPoint!.lineHeight / 2);
+-    _triggerSelectionStartEdgeUpdate();
++    _triggerSelectionStartEdgeUpdate(fromDrag: true);
+ 
+     _selectionOverlay!.updateMagnifier(
+       _buildInfoForMagnifier(details.globalPosition, _selectionDelegate.value.startSelectionPoint!),
+@@ -1249,7 +1220,7 @@ class SelectableRegionState extends State<SelectableRegion>
+     _selectionEndPosition =
+         _selectionEndHandleDragPosition -
+         Offset(0, _selectionDelegate.value.endSelectionPoint!.lineHeight / 2);
+-    _triggerSelectionEndEdgeUpdate();
++    _triggerSelectionEndEdgeUpdate(fromDrag: true);
+ 
+     _selectionOverlay!.updateMagnifier(
+       _buildInfoForMagnifier(details.globalPosition, _selectionDelegate.value.endSelectionPoint!),
+@@ -1780,12 +1751,12 @@ class SelectableRegionState extends State<SelectableRegion>
+ 
+   /// The line height at the start of the current selection.
+   double get startGlyphHeight {
+-    return _selectionDelegate.value.startSelectionPoint!.lineHeight;
++    return _selectionDelegate.value.startSelectionPoint?.lineHeight ?? 0;
+   }
+ 
+   /// The line height at the end of the current selection.
+   double get endGlyphHeight {
+-    return _selectionDelegate.value.endSelectionPoint!.lineHeight;
++    return _selectionDelegate.value.endSelectionPoint?.lineHeight ?? 0;
+   }
+ 
+   /// Returns the local coordinates of the endpoints of the current selection.
+@@ -1959,7 +1930,7 @@ class SelectableRegionState extends State<SelectableRegion>
+     if (_webContextMenuEnabled) {
+       result = PlatformSelectableRegionContextMenu(child: result);
+     }
+-    return TapRegion(
++    final tapRegion = TapRegion(
+       groupId: SelectableRegion,
+       onTapOutside: (PointerDownEvent event) {
+         // To match the native web behavior, this selectable region is
+@@ -1970,6 +1941,8 @@ class SelectableRegionState extends State<SelectableRegion>
+         // the region on non-web platforms.
+         if (kIsWeb) {
+           _focusNode.unfocus();
++        } else {
++          clearSelection();
+         }
+       },
+       child: CompositedTransformTarget(
+@@ -1989,6 +1962,22 @@ class SelectableRegionState extends State<SelectableRegion>
+         ),
+       ),
+     );
++    return NotificationListener<ScrollEndNotification>(
++      onNotification: (notification) {
++        _selectionDelegate.layoutDidChange();
++        _updateSelectedContentIfNeeded();
++        final SelectedContent? lastSelection = _lastSelectedContent;
++        if (lastSelection != null && lastSelection.plainText.isNotEmpty) {
++          _showHandles();
++          final SelectionOverlay? selectionOverlay = _selectionOverlay;
++          if (selectionOverlay == null || !selectionOverlay.toolbarIsVisible) {
++            _showToolbar();
++          }
++        }
++        return false;
++      },
++      child: tapRegion,
++    );
+   }
+ }
+ 
+@@ -2100,6 +2089,11 @@ class _DirectionallyExtendCaretSelectionAction<T extends DirectionalCaretMovemen
+ ///  * [MultiSelectableSelectionContainerDelegate], for the class that provides
+ ///  the main implementation details of this [SelectionContainerDelegate].
+ class StaticSelectionContainerDelegate extends MultiSelectableSelectionContainerDelegate {
++  StaticSelectionContainerDelegate({this.separator});
++
++  @override
++  final Object? separator;
++
+   /// The set of [Selectable]s that have received start events.
+   final Set<Selectable> _hasReceivedStartEvent = <Selectable>{};
+ 
+@@ -2380,6 +2374,8 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
+   /// Gets the list of [Selectable]s this delegate is managing.
+   List<Selectable> selectables = <Selectable>[];
+ 
++  bool get isSingle => selectables.length == 1;
++
+   /// The number of additional pixels added to the selection handle drawable
+   /// area.
+   ///
+@@ -2835,8 +2831,17 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
+       return null;
+     }
+     final buffer = StringBuffer();
+-    for (final selection in selections) {
+-      buffer.write(selection.plainText);
++    if (separator != null) {
++      for (final (i, selection) in selections.indexed) {
++        if (i != 0) {
++          buffer.write(separator);
++        }
++        buffer.write(selection.plainText);
++      }
++    } else {
++      for (final selection in selections) {
++        buffer.write(selection.plainText);
++      }
+     }
+     return SelectedContent(plainText: buffer.toString());
+   }
+@@ -3164,6 +3169,7 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
+   /// Updates the selection edges.
+   @protected
+   SelectionResult handleSelectionEdgeUpdate(SelectionEdgeUpdateEvent event) {
++    handleSelectionEdgeUpdateEvent(event);
+     if (event.type == SelectionEventType.endEdgeUpdate) {
+       return currentSelectionEndIndex == -1
+           ? _initSelection(event, isEnd: true)
+@@ -3174,6 +3180,10 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
+         : _adjustSelection(event, isEnd: false);
+   }
+ 
++  void handleSelectionEdgeUpdateEvent(SelectionEdgeUpdateEvent event) {
++    event.isSingle = isSingle;
++  }
++
+   @override
+   SelectionResult dispatchSelectionEvent(SelectionEvent event) {
+     final selectionWillBeInProgress = event is! ClearSelectionEvent;
+diff --git a/packages/flutter/lib/src/widgets/selection_container.dart b/packages/flutter/lib/src/widgets/selection_container.dart
+index 5d5a2386a7a21a15cfa0361ef3113a46a111f7c7..92e7d1eb70a8dbc8fecb9983fe856d2f4a2f8e41 100644
+--- a/packages/flutter/lib/src/widgets/selection_container.dart
++++ b/packages/flutter/lib/src/widgets/selection_container.dart
+@@ -270,6 +270,8 @@ class SelectionRegistrarScope extends InheritedWidget {
+ /// This delegate needs to implement [SelectionRegistrar] to register
+ /// [Selectable]s in the [SelectionContainer] subtree.
+ abstract class SelectionContainerDelegate implements SelectionHandler, SelectionRegistrar {
++  Object? get separator => null;
++
+   BuildContext? _selectionContainerContext;
+ 
+   /// Gets the paint transform from the [Selectable] child to
+diff --git a/packages/flutter/lib/src/widgets/sliver.dart b/packages/flutter/lib/src/widgets/sliver.dart
+index 4214e95df7d6d13164d893e755c3b9119420c9b7..860441878f40555890ec812743b1b380bf52af06 100644
+--- a/packages/flutter/lib/src/widgets/sliver.dart
++++ b/packages/flutter/lib/src/widgets/sliver.dart
+@@ -1673,6 +1673,8 @@ class SliverConstrainedCrossAxis extends StatelessWidget {
+   }
+ }
+ 
++typedef SliverZeroFlexParentDataWidget = _SliverZeroFlexParentDataWidget;
++
+ class _SliverZeroFlexParentDataWidget extends ParentDataWidget<SliverPhysicalParentData> {
+   const _SliverZeroFlexParentDataWidget({required Widget sliver}) : super(child: sliver);
+ 
+@@ -1695,6 +1697,8 @@ class _SliverZeroFlexParentDataWidget extends ParentDataWidget<SliverPhysicalPar
+   Type get debugTypicalAncestorWidgetClass => SliverCrossAxisGroup;
+ }
+ 
++typedef SliverConstrainedCrossAxis_ = _SliverConstrainedCrossAxis;
++
+ class _SliverConstrainedCrossAxis extends SingleChildRenderObjectWidget {
+   const _SliverConstrainedCrossAxis({required this.maxExtent, required Widget sliver})
+     : assert(maxExtent >= 0.0),
+diff --git a/packages/flutter/lib/src/widgets/text.dart b/packages/flutter/lib/src/widgets/text.dart
+index a44b97eeb0bb2f5a6967b9a99c1073dede0e06f8..f530cb9cb353f7f7bfa7fc073a195523f3b4b1c6 100644
+--- a/packages/flutter/lib/src/widgets/text.dart
++++ b/packages/flutter/lib/src/widgets/text.dart
+@@ -992,6 +992,9 @@ class _SelectableTextContainerDelegate extends StaticSelectionContainerDelegate
+   final GlobalKey _textKey;
+   RenderParagraph get paragraph => _textKey.currentContext!.findRenderObject()! as RenderParagraph;
+ 
++  @override
++  void handleSelectionEdgeUpdateEvent(SelectionEdgeUpdateEvent event) {}
++
+   @override
+   SelectionResult handleSelectParagraph(SelectParagraphSelectionEvent event) {
+     final SelectionResult result = _handleSelectParagraph(event);
+@@ -1425,6 +1428,9 @@ typedef _SelectionInfo = ({int contentLength, SelectedContentRange? range});
+ // must also be updated.
+ // TODO(Renzo-Olivares): Remove after investigating a solution for overriding all
+ // styles for children in an [InlineSpan] tree, see: https://github.com/flutter/flutter/issues/177952.
++
++typedef OverridingTextStyleTextSpanUtils = _OverridingTextStyleTextSpanUtils;
++
+ class _OverridingTextStyleTextSpanUtils {
+   static TextSpan applyTextSpacingOverrides({
+     double? lineHeightScaleFactor,
+diff --git a/packages/flutter/lib/src/widgets/text_selection.dart b/packages/flutter/lib/src/widgets/text_selection.dart
+index 05f696b37ce29f61ec6cf2c429702f1b7aea3d17..bd3267c658fa3aca1898bac2f1b308ba4884c83f 100644
+--- a/packages/flutter/lib/src/widgets/text_selection.dart
++++ b/packages/flutter/lib/src/widgets/text_selection.dart
+@@ -3716,10 +3716,10 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
+     if (widget.onDragSelectionStart != null ||
+         widget.onDragSelectionUpdate != null ||
+         widget.onDragSelectionEnd != null) {
+-      switch (defaultTargetPlatform) {
+-        case TargetPlatform.android:
+-        case TargetPlatform.fuchsia:
+-        case TargetPlatform.iOS:
++      // switch (defaultTargetPlatform) {
++      //   case TargetPlatform.android:
++      //   case TargetPlatform.fuchsia:
++      //   case TargetPlatform.iOS:
+           gestures[TapAndHorizontalDragGestureRecognizer] =
+               GestureRecognizerFactoryWithHandlers<TapAndHorizontalDragGestureRecognizer>(
+                 () => TapAndHorizontalDragGestureRecognizer(debugOwner: this),
+@@ -3739,28 +3739,28 @@ class _TextSelectionGestureDetectorState extends State<TextSelectionGestureDetec
+                     ..onCancel = _handleTapCancel;
+                 },
+               );
+-        case TargetPlatform.linux:
+-        case TargetPlatform.macOS:
+-        case TargetPlatform.windows:
+-          gestures[TapAndPanGestureRecognizer] =
+-              GestureRecognizerFactoryWithHandlers<TapAndPanGestureRecognizer>(
+-                () => TapAndPanGestureRecognizer(debugOwner: this),
+-                (TapAndPanGestureRecognizer instance) {
+-                  instance
+-                    // Text selection should start from the position of the first pointer
+-                    // down event.
+-                    ..dragStartBehavior = DragStartBehavior.down
+-                    ..onTapTrackStart = _handleTapTrackStart
+-                    ..onTapTrackReset = _handleTapTrackReset
+-                    ..onTapDown = _handleTapDown
+-                    ..onDragStart = _handleDragStart
+-                    ..onDragUpdate = _handleDragUpdate
+-                    ..onDragEnd = _handleDragEnd
+-                    ..onTapUp = _handleTapUp
+-                    ..onCancel = _handleTapCancel;
+-                },
+-              );
+-      }
++      //   case TargetPlatform.linux:
++      //   case TargetPlatform.macOS:
++      //   case TargetPlatform.windows:
++      //     gestures[TapAndPanGestureRecognizer] =
++      //         GestureRecognizerFactoryWithHandlers<TapAndPanGestureRecognizer>(
++      //           () => TapAndPanGestureRecognizer(debugOwner: this),
++      //           (TapAndPanGestureRecognizer instance) {
++      //             instance
++      //               // Text selection should start from the position of the first pointer
++      //               // down event.
++      //               ..dragStartBehavior = DragStartBehavior.down
++      //               ..onTapTrackStart = _handleTapTrackStart
++      //               ..onTapTrackReset = _handleTapTrackReset
++      //               ..onTapDown = _handleTapDown
++      //               ..onDragStart = _handleDragStart
++      //               ..onDragUpdate = _handleDragUpdate
++      //               ..onDragEnd = _handleDragEnd
++      //               ..onTapUp = _handleTapUp
++      //               ..onCancel = _handleTapCancel;
++      //           },
++      //         );
++      // }
+     }
+ 
+     if (widget.onForcePressStart != null || widget.onForcePressEnd != null) {
+diff --git a/packages/flutter/lib/src/widgets/widget_span.dart b/packages/flutter/lib/src/widgets/widget_span.dart
+index 09da3b76525f3c04db22ec663c4af479ff8e75cd..4a83efb03925a95bbed349457290062679bca9b1 100644
+--- a/packages/flutter/lib/src/widgets/widget_span.dart
++++ b/packages/flutter/lib/src/widgets/widget_span.dart
+@@ -78,7 +78,7 @@ class WidgetSpan extends PlaceholderSpan {
+   ///
+   /// A [TextStyle] may be provided with the [style] property, but only the
+   /// decoration, foreground, background, and spacing options will be used.
+-  const WidgetSpan({required this.child, super.alignment, super.baseline, super.style})
++  const WidgetSpan({required this.child, super.alignment, super.baseline, super.style, super.rawText})
+     : assert(
+         baseline != null ||
+             !(identical(alignment, ui.PlaceholderAlignment.aboveBaseline) ||
+diff --git a/packages/flutter/lib/src/widgets/widget_state.dart b/packages/flutter/lib/src/widgets/widget_state.dart
+index f65fe4c8fda73c43bd9a61a1a1508463b699489c..18cf68c3967c0a253b58e8d1c1223553f035ec6a 100644
+--- a/packages/flutter/lib/src/widgets/widget_state.dart
++++ b/packages/flutter/lib/src/widgets/widget_state.dart
+@@ -436,7 +436,7 @@ abstract class WidgetStateMouseCursor extends MouseCursor
+     if (states.contains(WidgetState.disabled)) {
+       return SystemMouseCursors.basic;
+     }
+-    return kIsWeb ? SystemMouseCursors.click : SystemMouseCursors.basic;
++    return SystemMouseCursors.click;
+   }
+ 
+   /// A mouse cursor for widgets related to text, which resolves differently
+diff --git a/packages/flutter/test/widgets/selectable_region_test.dart b/packages/flutter/test/widgets/selectable_region_test.dart
+index be04530eeb7eb82b04b684961e613c14eeeb3902..4ae2a8c2aab6f7ee6f1359cdf3472c61615a653f 100644
+--- a/packages/flutter/test/widgets/selectable_region_test.dart
++++ b/packages/flutter/test/widgets/selectable_region_test.dart
+@@ -965,6 +965,125 @@ void main() {
+       expect(renderSelectionSpy.events.length, 0);
+     });
+ 
++    testWidgets(
++      'SelectionArea + ListView: select across multiple lines and scroll does not crash',
++      (WidgetTester tester) async {
++        // Regression test: when selection spans across ListView items and user scrolls,
++        // startSelectionPoint/endSelectionPoint may be null (off-screen). Verifies that
++        // startGlyphHeight/endGlyphHeight return 0 and do not crash.
++        await tester.pumpWidget(
++          MaterialApp(
++            home: SelectableRegion(
++              selectionControls: materialTextSelectionControls,
++              child: SizedBox(
++                height: 400,
++                child: ListView(
++                  children: List<Widget>.generate(
++                    15,
++                    (int i) => Text(
++                      'Line $i: Selectable text content for testing',
++                      style: const TextStyle(fontSize: 20),
++                    ),
++                  ),
++                ),
++              ),
++            ),
++          ),
++        );
++        await tester.pumpAndSettle();
++
++        final RenderParagraph firstParagraph = tester.renderObject<RenderParagraph>(
++          find.descendant(
++            of: find.text('Line 0: Selectable text content for testing'),
++            matching: find.byType(RichText),
++          ),
++        );
++        final RenderParagraph thirdParagraph = tester.renderObject<RenderParagraph>(
++          find.descendant(
++            of: find.text('Line 2: Selectable text content for testing'),
++            matching: find.byType(RichText),
++          ),
++        );
++
++        // Select from first line to third line (cross-line selection).
++        final TestGesture selectGesture = await tester.startGesture(
++          textOffsetToPosition(firstParagraph, 2),
++          kind: PointerDeviceKind.mouse,
++        );
++        addTearDown(selectGesture.removePointer);
++        await tester.pump();
++        await selectGesture.moveTo(textOffsetToPosition(thirdParagraph, 15));
++        await tester.pump();
++        await selectGesture.up();
++        await tester.pumpAndSettle();
++
++        // Verify selection exists.
++        expect(firstParagraph.selections.isNotEmpty, isTrue);
++        expect(thirdParagraph.selections.isNotEmpty, isTrue);
++
++        // Simulate scroll - this may cause selection points to become null when off-screen.
++        await tester.drag(find.byType(ListView), const Offset(0, -150));
++        await tester.pumpAndSettle();
++
++        // Should not throw - startGlyphHeight/endGlyphHeight return 0 when points are null.
++        expect(tester.takeException(), isNull);
++      },
++      skip: kIsWeb, // [intended] Web uses its native context menu.
++    );
++
++    testWidgets(
++      'startGlyphHeight and endGlyphHeight return 0 when startSelectionPoint/endSelectionPoint are null',
++      (WidgetTester tester) async {
++        // Directly tests the fix: when SelectionGeometry has null start/end points
++        // (e.g. selection off-screen in scrollable), startGlyphHeight and
++        // endGlyphHeight must not crash and must return 0.
++        final delegateKey = GlobalKey<NullSelectionPointDelegateWidgetState>();
++
++        await tester.pumpWidget(
++          MaterialApp(
++            home: SelectableRegion(
++              selectionControls: materialTextSelectionControls,
++              child: NullSelectionPointDelegateWidget(
++                key: delegateKey,
++                child: const Column(
++                  children: <Widget>[Text('First'), Text('Second'), Text('Third')],
++                ),
++              ),
++            ),
++          ),
++        );
++        await tester.pumpAndSettle();
++
++        final RenderParagraph paragraph = tester.renderObject<RenderParagraph>(
++          find.descendant(of: find.text('Second'), matching: find.byType(RichText)),
++        );
++        final TestGesture gesture = await tester.startGesture(
++          textOffsetToPosition(paragraph, 2),
++          kind: PointerDeviceKind.mouse,
++        );
++        addTearDown(gesture.removePointer);
++        await gesture.moveTo(textOffsetToPosition(paragraph, 5));
++        await gesture.up();
++        await tester.pumpAndSettle();
++
++        // Switch delegate to return null selection points (simulates off-screen scenario).
++        final NullSelectionPointDelegate delegate = delegateKey.currentState!.delegate;
++        delegate.useNullSelectionPoints = true;
++        delegate.notifyListeners();
++        await tester.pump();
++
++        final SelectableRegionState state = tester.state<SelectableRegionState>(
++          find.byType(SelectableRegion),
++        );
++        // Access the getters - should not throw, must return 0 when points are null.
++        expect(() => state.startGlyphHeight, returnsNormally);
++        expect(() => state.endGlyphHeight, returnsNormally);
++        expect(state.startGlyphHeight, 0);
++        expect(state.endGlyphHeight, 0);
++      },
++      skip: kIsWeb, // [intended] Web uses its native context menu.
++    );
++
+     testWidgets('mouse long press does not send select-word event', (WidgetTester tester) async {
+       final spy = UniqueKey();
+ 
+@@ -7007,6 +7126,56 @@ void main() {
+   });
+ }
+ 
++/// A [SelectionContainerDelegate] that can return [SelectionGeometry] with null
++/// [startSelectionPoint] and [endSelectionPoint] to test off-screen selection handling.
++class NullSelectionPointDelegate extends StaticSelectionContainerDelegate {
++  bool useNullSelectionPoints = false;
++
++  @override
++  SelectionGeometry get value {
++    final SelectionGeometry geometry = super.value;
++    if (useNullSelectionPoints && geometry.hasSelection) {
++      return SelectionGeometry(
++        status: geometry.status,
++        hasContent: geometry.hasContent,
++        selectionRects: geometry.selectionRects,
++      );
++    }
++    return geometry;
++  }
++}
++
++/// Widget that holds [NullSelectionPointDelegate] for testing.
++class NullSelectionPointDelegateWidget extends StatefulWidget {
++  const NullSelectionPointDelegateWidget({super.key, required this.child});
++
++  final Widget child;
++
++  @override
++  State<NullSelectionPointDelegateWidget> createState() => NullSelectionPointDelegateWidgetState();
++}
++
++class NullSelectionPointDelegateWidgetState extends State<NullSelectionPointDelegateWidget> {
++  late final NullSelectionPointDelegate delegate;
++
++  @override
++  void initState() {
++    super.initState();
++    delegate = NullSelectionPointDelegate();
++  }
++
++  @override
++  void dispose() {
++    delegate.dispose();
++    super.dispose();
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    return SelectionContainer(delegate: delegate, child: widget.child);
++  }
++}
++
+ class ColumnSelectionContainerDelegate extends StaticSelectionContainerDelegate {
+   /// Copies the selected contents of all [Selectable]s, separating their
+   /// contents with a new line.

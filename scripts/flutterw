@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Project-local Flutter entry point. Never falls back to a global SDK.
+set -euo pipefail
+repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+sdk_dir="$repo_dir/.fvm/flutter_sdk"
+expected_revision=d3b14c876900e553bc736ca19295fc09e3853e8e
+expected_patch=7b5dc6ad15e1e2d2d6218b050bfccb62ba7abd2e6d0be25d008b39284c9d4299
+
+die() { printf 'Flutter environment error: %s\n' "$*" >&2; exit 1; }
+test -x "$sdk_dir/bin/flutter" || die 'SDK missing; see docs/flutter-environment.md'
+test "$(git -C "$sdk_dir" rev-parse HEAD)" = "$expected_revision" || die 'Expected Flutter 3.47.2 pinned revision'
+test "$(shasum -a 256 "$repo_dir/tool/flutter-sdk.patch" | awk '{print $1}')" = "$expected_patch" || die 'Pinned SDK patch changed; review and update the environment lock'
+actual_patch="$(git -C "$sdk_dir" diff --no-ext-diff --no-textconv --binary --full-index --no-color HEAD | shasum -a 256 | awk '{print $1}')"
+test "$actual_patch" = "$expected_patch" || die 'SDK patches differ from the verified environment; see docs/flutter-environment.md'
+
+if [[ "${1:-}" == '--check-sdk' ]]; then
+  printf 'Flutter 3.47.2 / Dart 3.13.2\nRevision: %s\nPatch SHA-256: %s\nSDK: %s\n' "$expected_revision" "$expected_patch" "$(cd "$sdk_dir" && pwd -P)"
+  exit 0
+fi
+export PATH="$sdk_dir/bin:$PATH"
+cd "$repo_dir"
+exec "$sdk_dir/bin/flutter" "$@"

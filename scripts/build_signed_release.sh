@@ -8,6 +8,7 @@ repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 android_dir="$repo_dir/android"
 key_properties="$android_dir/key.properties"
 local_properties="$android_dir/local.properties"
+"$repo_dir/scripts/flutterw" --check-sdk
 apk_path="$repo_dir/build/app/outputs/apk/release/app-release.apk"
 
 die() {
@@ -29,6 +30,8 @@ sdk_dir="$(awk -F= '$1 == "sdk.dir" { print substr($0, index($0, "=") + 1); exit
 flutter_sdk="$(awk -F= '$1 == "flutter.sdk" { print substr($0, index($0, "=") + 1); exit }' "$local_properties" | tr -d '\r')"
 test -n "$sdk_dir" || die "android/local.properties is missing sdk.dir"
 test -n "$flutter_sdk" || die "android/local.properties is missing flutter.sdk"
+test "$(cd "$flutter_sdk" && pwd -P)" = "$(cd "$repo_dir/.fvm/flutter_sdk" && pwd -P)" || \
+  die "flutter.sdk must point to the pinned SDK; see docs/flutter-environment.md"
 test -d "$sdk_dir/build-tools" || die "Android build-tools directory not found"
 test -f "$flutter_sdk/packages/flutter_tools/gradle/settings.gradle.kts" || \
   die "flutter.sdk does not contain Flutter's Gradle plugin loader"
