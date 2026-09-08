@@ -4,10 +4,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
+double _opacity(WidgetTester tester, String key) =>
+    tester.widget<FadeTransition>(find.byKey(ValueKey(key))).opacity.value;
+
+// Compare rendered geometry and visible layers at identical route progress.
+List<double> _frame(WidgetTester tester) {
+  final flight = find.byKey(const ValueKey('video-transition-flight'));
+  final rect = tester.getRect(flight);
+  final radius = tester.widget<ClipRRect>(flight).borderRadius as BorderRadius;
+  return [
+    rect.left,
+    rect.top,
+    rect.width,
+    rect.height,
+    radius.topLeft.x,
+    _opacity(tester, 'video-transition-page'),
+    _opacity(tester, 'video-transition-backdrop'),
+    _opacity(tester, 'video-transition-page-surface-opacity'),
+    tester
+        .widget<ColoredBox>(
+          find
+              .descendant(
+                of: flight,
+                matching: find.byType(ColoredBox),
+              )
+              .first,
+        )
+        .color
+        .a,
+  ];
+}
+
 void main() {
   tearDown(Get.reset);
-
-  testWidgets('video card expands to the page and returns without errors', (
+  testWidgets('enter and exit render the same frames in reverse', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -20,154 +50,42 @@ void main() {
         home: const _SourcePage(),
       ),
     );
-
     await tester.tap(find.byKey(const ValueKey('video-card')));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    expect(find.byType(SnapshotWidget), findsOneWidget);
-    expect(find.byType(ImageFiltered), findsOneWidget);
+    final frames = <List<double>>[];
+    for (var step = 1; step <= 9; step++) {
+      await tester.pump(videoPageTransitionDuration ~/ 10);
+      frames.add(_frame(tester));
+      expect(tester.takeException(), isNull);
+    }
     expect(find.byType(BackdropFilter), findsNothing);
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(const ValueKey('video-transition-backdrop')),
-          )
-          .opacity
-          .value,
-      1,
-    );
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(const ValueKey('video-transition-page')),
-          )
-          .opacity
-          .value,
-      0,
-    );
+    expect(find.byType(ImageFiltered), findsOneWidget);
     expect(find.byType(FittedBox), findsNothing);
-    expect(tester.takeException(), isNull);
-
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(
-              const ValueKey('video-transition-page-surface-opacity'),
-            ),
-          )
-          .opacity
-          .value,
-      0,
-    );
-
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(const ValueKey('video-transition-backdrop')),
-          )
-          .opacity
-          .value,
-      inExclusiveRange(0, 1),
-    );
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(
-              const ValueKey('video-transition-page-surface-opacity'),
-            ),
-          )
-          .opacity
-          .value,
-      inExclusiveRange(0, 1),
-    );
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(const ValueKey('video-transition-page')),
-          )
-          .opacity
-          .value,
-      0,
-    );
-
-    await tester.pump(const Duration(milliseconds: 80));
-    await tester.pump(const Duration(milliseconds: 50));
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(const ValueKey('video-transition-backdrop')),
-          )
-          .opacity
-          .value,
-      0,
-    );
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(
-              const ValueKey('video-transition-page-surface-opacity'),
-            ),
-          )
-          .opacity
-          .value,
-      1,
-    );
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(const ValueKey('video-transition-page')),
-          )
-          .opacity
-          .value,
-      inExclusiveRange(0, 1),
-    );
-    expect(tester.takeException(), isNull);
-
     await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
     expect(Get.routing.route, isA<GetPageRoute>());
     expect(Get.currentRoute, '/videoV');
     expect(Get.arguments['heroTag'], 'video-card-transition-test');
     expect(Get.isRegistered<_PlaybackProbeController>(), isTrue);
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(const ValueKey('video-transition-page')),
-          )
-          .opacity
-          .value,
-      1,
-    );
+    expect(_opacity(tester, 'video-transition-page'), 1);
+
     Navigator.of(tester.element(find.text('播放页'))).pop();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(find.byType(ImageFiltered), findsOneWidget);
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(const ValueKey('video-transition-page')),
-          )
-          .opacity
-          .value,
-      inExclusiveRange(0, 1),
-    );
-    expect(tester.takeException(), isNull);
-
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(
-      tester
-          .widget<FadeTransition>(
-            find.byKey(const ValueKey('video-transition-page')),
-          )
-          .opacity
-          .value,
-      0,
-    );
-    expect(find.byType(FittedBox), findsNothing);
-
+    for (var step = 1; step <= 9; step++) {
+      await tester.pump(videoPageReverseTransitionDuration ~/ 10);
+      final reverse = _frame(tester);
+      final forward = frames[9 - step];
+      for (var field = 0; field < forward.length; field++) {
+        expect(
+          reverse[field],
+          closeTo(forward[field], 0.001),
+          reason: 'progress ${1 - step / 10}, field $field',
+        );
+      }
+      if (step >= 7) {
+        expect(_opacity(tester, 'video-transition-backdrop'), 0);
+      }
+      expect(tester.takeException(), isNull);
+    }
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('video-card')), findsOneWidget);
     expect(Get.isRegistered<_PlaybackProbeController>(), isFalse);
