@@ -61,7 +61,7 @@ class DynamicPanel extends StatelessWidget {
     void showMore() => _imageSaveDialog(context, authorWidget.morePanel);
 
     final child = Material(
-      type: MaterialType.transparency,
+      color: theme.colorScheme.surfaceContainer,
       child: InkWell(
         onTap:
             isDetail &&

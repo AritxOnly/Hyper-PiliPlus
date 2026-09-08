@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import io.flutter.embedding.android.FlutterSurfaceView
 import kotlin.math.ceil
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 internal data class FlutterBackdropBounds(
@@ -62,6 +63,7 @@ internal class FlutterSurfaceBackdropSampler(
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private var enabled = false
+    private var debugEnabled = false
     private var navigationBounds: FlutterBackdropBounds? = null
     private var captureScheduled = false
     private var captureScheduledAt = Long.MAX_VALUE
@@ -76,8 +78,11 @@ internal class FlutterSurfaceBackdropSampler(
     private var smoothedFrameIntervalMs = 0f
     private var pointerDown = false
     private var keepCapturingUntil = Long.MIN_VALUE
+    private var postTouchCaptureDeadline = Long.MIN_VALUE
     private val bitmapBuffers = arrayOfNulls<Bitmap>(2)
     private var displayedBitmap: Bitmap? = null
+    private var displayedSourceWidthPx = 0
+    private var displayedSourceHeightPx = 0
     private var debugState = FlutterBackdropDebugState()
     private val captureRunnable = Runnable {
         captureScheduled = false
@@ -101,6 +106,7 @@ internal class FlutterSurfaceBackdropSampler(
             smoothedFrameIntervalMs = 0f
             pointerDown = false
             keepCapturingUntil = Long.MIN_VALUE
+            postTouchCaptureDeadline = Long.MIN_VALUE
             // Visibility changes while scrolling or navigating are temporary.
             // Keep the last good frame so the glass never falls back to a flat
             // translucent material when the bar becomes visible again.
@@ -127,7 +133,13 @@ internal class FlutterSurfaceBackdropSampler(
         }
     }
 
-    /** Flutter has committed a frame, so a previously delayed retry is obsolete. */
+    fun setDebugEnabled(value: Boolean) {
+        if (debugEnabled == value) return
+        debugEnabled = value
+        if (value) onDebugStateChanged(debugState)
+    }
+
+    /** Flutter has displayed its first frame; this is readiness, not per-frame synchronization. */
     fun onFlutterUiDisplayed() {
         flutterUiDisplayed = true
         initialRetryCount = 0
@@ -161,6 +173,7 @@ internal class FlutterSurfaceBackdropSampler(
             MotionEvent.ACTION_DOWN -> {
                 pointerDown = true
                 keepCapturingUntil = Long.MIN_VALUE
+                postTouchCaptureDeadline = Long.MIN_VALUE
                 // Do not fold the idle gap into the active-frame FPS metric.
                 lastSnapshotAt = Long.MIN_VALUE
                 smoothedFrameIntervalMs = 0f
@@ -173,10 +186,11 @@ internal class FlutterSurfaceBackdropSampler(
             MotionEvent.ACTION_CANCEL,
             -> {
                 pointerDown = false
-                // Keep sampling briefly after release so Flutter's ballistic
-                // scrolling remains visible through the glass. Sampling then
-                // stops completely while the page is idle.
-                keepCapturingUntil = SystemClock.uptimeMillis() + FLING_CAPTURE_WINDOW_MS
+                // Sample until the copied pixels settle. A fixed window can
+                // stop halfway through a long Flutter ballistic scroll.
+                val now = SystemClock.uptimeMillis()
+                keepCapturingUntil = now + POST_TOUCH_SETTLE_MS
+                postTouchCaptureDeadline = now + MAX_POST_TOUCH_CAPTURE_MS
                 scheduleCapture(preemptDelayed = true)
             }
         }
@@ -186,8 +200,11 @@ internal class FlutterSurfaceBackdropSampler(
         enabled = false
         hasSnapshot = false
         displayedBitmap = null
+        displayedSourceWidthPx = 0
+        displayedSourceHeightPx = 0
         pointerDown = false
         keepCapturingUntil = Long.MIN_VALUE
+        postTouchCaptureDeadline = Long.MIN_VALUE
         handler.removeCallbacks(captureRunnable)
         onSnapshotChanged(null)
     }
@@ -201,7 +218,7 @@ internal class FlutterSurfaceBackdropSampler(
         val rateLimitDelay = if (lastCaptureStartedAt == Long.MIN_VALUE) {
             0L
         } else {
-            (MIN_CAPTURE_INTERVAL_MS - (now - lastCaptureStartedAt)).coerceAtLeast(0)
+            (captureIntervalMs() - (now - lastCaptureStartedAt)).coerceAtLeast(0)
         }
         val scheduledAt = now + max(delayMillis, rateLimitDelay)
         if (captureScheduled) {
@@ -299,6 +316,10 @@ internal class FlutterSurfaceBackdropSampler(
                 if (enabled && result == PixelCopy.SUCCESS) {
                     initialRetryCount = 0
                     val snapshotAt = SystemClock.uptimeMillis()
+                    val contentChanged =
+                        displayedSourceWidthPx != sourceRect.width() ||
+                            displayedSourceHeightPx != sourceRect.height() ||
+                            displayedBitmap?.sameAs(destination) != true
                     val firstSampleLatency = if (!hasSnapshot && samplingEnabledAt != Long.MIN_VALUE) {
                         snapshotAt - samplingEnabledAt
                     } else {
@@ -319,14 +340,24 @@ internal class FlutterSurfaceBackdropSampler(
                         0
                     }
                     hasSnapshot = true
-                    displayedBitmap = destination
-                    onSnapshotChanged(
-                        FlutterBackdropSnapshot(
-                            bitmap = destination,
-                            sourceWidthPx = sourceRect.width(),
-                            sourceHeightPx = sourceRect.height(),
-                        ),
-                    )
+                    if (contentChanged) {
+                        displayedBitmap = destination
+                        displayedSourceWidthPx = sourceRect.width()
+                        displayedSourceHeightPx = sourceRect.height()
+                        onSnapshotChanged(
+                            FlutterBackdropSnapshot(
+                                bitmap = destination,
+                                sourceWidthPx = sourceRect.width(),
+                                sourceHeightPx = sourceRect.height(),
+                            ),
+                        )
+                        if (!pointerDown && postTouchCaptureDeadline != Long.MIN_VALUE) {
+                            keepCapturingUntil = min(
+                                snapshotAt + POST_TOUCH_SETTLE_MS,
+                                postTouchCaptureDeadline,
+                            )
+                        }
+                    }
                     updateDebugState {
                         it.copy(
                             status = "采样成功",
@@ -377,6 +408,16 @@ internal class FlutterSurfaceBackdropSampler(
     private fun shouldKeepCapturing(): Boolean =
         pointerDown || SystemClock.uptimeMillis() < keepCapturingUntil
 
+    private fun captureIntervalMs(): Long {
+        val refreshRate = activity.window.decorView.display?.refreshRate
+            ?.takeIf { it.isFinite() && it > 0f }
+            ?.coerceAtMost(MAX_CAPTURE_RATE_HZ)
+            ?: DEFAULT_REFRESH_RATE_HZ
+        // Floor instead of rounding so a 60 Hz display remains on the familiar
+        // 16 ms cadence and a 120 Hz display is no longer sampled at half rate.
+        return (1_000f / refreshRate).toLong().coerceAtLeast(MIN_CAPTURE_INTERVAL_MS)
+    }
+
     private fun retainedStatus(waitingStatus: String): String =
         if (hasSnapshot) "采样成功（刷新失败，保留上一帧）" else waitingStatus
 
@@ -384,7 +425,7 @@ internal class FlutterSurfaceBackdropSampler(
         transform: (FlutterBackdropDebugState) -> FlutterBackdropDebugState,
     ) {
         debugState = transform(debugState)
-        onDebugStateChanged(debugState)
+        if (debugEnabled) onDebugStateChanged(debugState)
     }
 
     /** Small diagnostic fingerprint; it proves whether sampled pixels change. */
@@ -441,8 +482,11 @@ internal class FlutterSurfaceBackdropSampler(
         // A 20% linear sample still has ample detail under the strong blur,
         // while reducing PixelCopy work enough to target the display cadence.
         const val SAMPLE_SCALE = 0.20f
-        const val MIN_CAPTURE_INTERVAL_MS = 16L
-        const val FLING_CAPTURE_WINDOW_MS = 1_200L
+        const val DEFAULT_REFRESH_RATE_HZ = 60f
+        const val MAX_CAPTURE_RATE_HZ = 120f
+        const val MIN_CAPTURE_INTERVAL_MS = 4L
+        const val POST_TOUCH_SETTLE_MS = 180L
+        const val MAX_POST_TOUCH_CAPTURE_MS = 4_000L
         // The renderer signal preempts this polling. Once Flutter reports a
         // committed frame, retry at display cadence for up to two seconds.
         const val INITIAL_RETRY_WAITING_FOR_FLUTTER_MS = 250L

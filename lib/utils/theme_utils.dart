@@ -60,6 +60,8 @@ abstract final class ThemeUtils {
     final theme = ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      canvasColor: colorScheme.surfaceContainerLowest,
+      scaffoldBackgroundColor: colorScheme.surfaceContainerLowest,
       fontFamily: fontFamily,
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
@@ -67,7 +69,7 @@ abstract final class ThemeUtils {
         titleSpacing: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
-        backgroundColor: colorScheme.surface,
+        backgroundColor: colorScheme.surfaceContainerLowest,
         titleTextStyle: TextStyle(
           fontSize: 16,
           fontWeight: fontWeight,
@@ -202,13 +204,13 @@ abstract final class ThemeUtils {
       );
     }
     return scheme.copyWith(
-      background: const Color(0xFFF3F3F3),
+      background: Colors.white,
       onBackground: const Color(0xFF191919),
       surface: const Color(0xFFF3F3F3),
       onSurface: const Color(0xFF191919),
       surfaceVariant: const Color(0xFFECECEC),
       onSurfaceVariant: const Color(0xFF6F6F6F),
-      surfaceContainerLowest: const Color(0xFFF3F3F3),
+      surfaceContainerLowest: Colors.white,
       surfaceContainerLow: const Color(0xFFF3F3F3),
       surfaceContainer: Colors.white,
       surfaceContainerHigh: const Color(0xFFE8E8E8),

@@ -108,6 +108,7 @@ internal class MiuixNavigationOverlay(
             when (call.method) {
                 "update" -> {
                     uiState = NavigationUiState.from(call.arguments as? Map<*, *>)
+                    backdropSampler.setDebugEnabled(uiState.backdropDebug)
                     backdropSampler.setEnabled(uiState.visible && uiState.backdropSampling)
                     result.success(null)
                 }

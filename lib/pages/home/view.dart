@@ -75,21 +75,24 @@ class _HomePageState extends CommonPageState<HomePage>
     } else {
       tabBar = const SizedBox(height: 6);
     }
-    return Column(
-      children: [
-        if (!_mainController.useSideBar &&
-            MediaQuery.sizeOf(context).isPortrait)
-          customAppBar(),
-        tabBar,
-        Expanded(
-          child: onBuild(
-            tabBarView(
-              controller: _homeController.tabController,
-              children: _homeController.tabs.map((e) => e.page).toList(),
+    return ColoredBox(
+      color: _colorScheme.surface,
+      child: Column(
+        children: [
+          if (!_mainController.useSideBar &&
+              MediaQuery.sizeOf(context).isPortrait)
+            customAppBar(),
+          tabBar,
+          Expanded(
+            child: onBuild(
+              tabBarView(
+                controller: _homeController.tabController,
+                children: _homeController.tabs.map((e) => e.page).toList(),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
