@@ -45,7 +45,7 @@ void main() {
   testWidgets('missing native plugin falls back to Flutter toast', (
     tester,
   ) async {
-    messenger.setMockMethodCallHandler(nativeFeedbackChannel, (_) async {
+    messenger.setMockMethodCallHandler(nativeFeedbackChannel, (_) {
       throw MissingPluginException();
     });
     await tester.pumpWidget(
