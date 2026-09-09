@@ -88,11 +88,24 @@ jobs:
           ref: d3b14c876900e553bc736ca19295fc09e3853e8e
           path: .fvm/flutter_sdk
           persist-credentials: false
+      - name: Fetch and verify the pinned Flutter version tag
+        run: |
+          # A SHA-only shallow checkout omits tags; Flutter derives its version from them.
+          git -C .fvm/flutter_sdk fetch --no-tags --depth=1 origin refs/tags/3.47.2:refs/tags/3.47.2
+          test "$(git -C .fvm/flutter_sdk rev-parse 'refs/tags/3.47.2^{commit}')" = "$(git -C .fvm/flutter_sdk rev-parse HEAD)"
       - name: Restore the verified Flutter patch
         run: |
           git -C .fvm/flutter_sdk apply --check "$GITHUB_WORKSPACE/tool/flutter-sdk.patch"
           git -C .fvm/flutter_sdk apply "$GITHUB_WORKSPACE/tool/flutter-sdk.patch"
           ./scripts/flutterw --check-sdk
+          ./scripts/flutterw --version --machine | python3 -c '
+          import json, sys
+          version = json.load(sys.stdin)
+          expected = json.load(open(".fvmrc"))["flutter"]
+          if version["frameworkVersion"] != expected:
+              raise SystemExit("Unexpected Flutter version: " + version["frameworkVersion"])
+          print("Verified Flutter " + expected)
+          '
           ./scripts/flutterw precache --android
       - name: Install Android SDK components
         run: |
