@@ -740,14 +740,14 @@ final class $AndroidHelper$Type$ extends jni$_.JType<AndroidHelper> {
 
   @jni$_.internal
   @core$_.override
-  String get signature => r'Lcom/example/piliplus/AndroidHelper;';
+  String get signature => r'Lcom/aritxonly/hyperpiliplus/AndroidHelper;';
 }
 
 /// from: `com.aritxonly.hyperpiliplus.AndroidHelper$ToDart`
 extension type AndroidHelper$ToDart._(jni$_.JObject _$this)
     implements jni$_.JObject {
   static final _class = jni$_.JClass.forName(
-    r'com/example/piliplus/AndroidHelper$ToDart',
+    r'com/aritxonly/hyperpiliplus/AndroidHelper$ToDart',
   );
 
   /// The type which includes information such as the signature of this class.
@@ -792,5 +792,5 @@ final class $AndroidHelper$ToDart$Type$
 
   @jni$_.internal
   @core$_.override
-  String get signature => r'Lcom/example/piliplus/AndroidHelper$ToDart;';
+  String get signature => r'Lcom/aritxonly/hyperpiliplus/AndroidHelper$ToDart;';
 }
