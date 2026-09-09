@@ -56,7 +56,6 @@ jobs:
         secrets: inherit
         with:
             publish: ${{ github.event.inputs.tag != '' }}
-            release_tag: ${{ github.event.inputs.tag || '' }}
 
     ios:
         if: ${{ (github.event_name == 'pull_request' && github.repository == 'bggRGjQaUbCoE/PiliPlus') || github.event.inputs.build_ios == 'true' }}

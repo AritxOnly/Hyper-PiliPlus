@@ -51,32 +51,16 @@ jobs:
           persist-credentials: false
           # Release notes compare the new flavor tag with the preceding one.
           fetch-depth: 0
-      - name: Generate flavor version
+      - name: Resolve flavor version
         id: version
-        run: python3 scripts/release_metadata.py --github-output "$GITHUB_OUTPUT"
-      - name: Validate requested release tag
         env:
-          REQUESTED_TAG: ${{ inputs.release_tag }}
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
-        run: test -z "$REQUESTED_TAG" || test "$REQUESTED_TAG" = "$RELEASE_TAG"
-      - name: Refuse to overwrite an existing release tag
-        if: inputs.publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          PUBLISH: ${{ inputs.publish }}
         run: |
-          python3 - <<'PY'
-          import json, os, urllib.request, urllib.error
-          url = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/git/ref/tags/{os.environ['RELEASE_TAG']}"
-          req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN']})
-          try:
-              urllib.request.urlopen(req).close()
-          except urllib.error.HTTPError as error:
-              if error.code != 404:
-                  raise
-          else:
-              raise SystemExit('Tag exists: increment tool/release.json revision before publishing')
-          PY
+          args=(--github-output "$GITHUB_OUTPUT")
+          if [ "$PUBLISH" = "true" ]; then
+            args+=(--next-available-tag)
+          fi
+          python3 scripts/release_metadata.py "${args[@]}"
       - name: Set up Java
         uses: actions/setup-java@v5
         with:

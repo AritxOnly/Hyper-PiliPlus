@@ -27,13 +27,35 @@ def version_metadata(pubspec, config):
     return name, code
 
 
+def next_available_revision(pubspec, config, tags):
+    # Validate the configured base revision before inspecting remote release tags.
+    version_metadata(pubspec, config)
+    prefix = f"v{config['upstreamVersion']}."
+    existing_revisions = []
+    for tag in tags:
+        if not tag.startswith(prefix):
+            continue
+        suffix = tag.removeprefix(prefix)
+        if suffix.isdecimal():
+            existing_revisions.append(int(suffix))
+    revision = max(config['revision'], max(existing_revisions, default=-1) + 1)
+    if revision > 99:
+        raise ValueError('no flavor revision remains for this upstream version')
+    return revision
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output', type=Path, default=ROOT / 'pili_release.json')
     parser.add_argument('--github-output', type=Path)
+    parser.add_argument('--next-available-tag', action='store_true')
     args = parser.parse_args()
-    name, code = version_metadata((ROOT / 'pubspec.yaml').read_text(),
-                                  json.loads((ROOT / 'tool/release.json').read_text()))
+    pubspec = (ROOT / 'pubspec.yaml').read_text()
+    config = json.loads((ROOT / 'tool/release.json').read_text())
+    if args.next_available_tag:
+        tags = subprocess.check_output(['git', 'tag', '--list'], cwd=ROOT, text=True).splitlines()
+        config = {**config, 'revision': next_available_revision(pubspec, config, tags)}
+    name, code = version_metadata(pubspec, config)
     commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     data = {'pili.name': name, 'pili.code': code, 'pili.hash': commit, 'pili.time': int(time.time())}
     args.output.write_text(json.dumps(data) + '\n')

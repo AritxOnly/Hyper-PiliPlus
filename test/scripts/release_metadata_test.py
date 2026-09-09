@@ -37,6 +37,36 @@ class ReleaseMetadataTest(unittest.TestCase):
             with self.subTest(upstream=upstream), self.assertRaises(ValueError):
                 self.metadata(upstream)
 
+    def test_next_revision_uses_the_first_version_after_existing_releases(self):
+        pubspec = 'version: 2.1.3+1\n'
+        config = {'upstreamVersion': '2.1.3', 'revision': 2}
+        self.assertEqual(
+            module.next_available_revision(
+                pubspec,
+                config,
+                ['v2.1.2.99', 'v2.1.3.0', 'v2.1.3.2', 'v2.1.3.02', 'v2.1.3.bad'],
+            ),
+            3,
+        )
+
+    def test_next_revision_keeps_a_configured_unreleased_revision(self):
+        self.assertEqual(
+            module.next_available_revision(
+                'version: 2.1.3+1\n',
+                {'upstreamVersion': '2.1.3', 'revision': 4},
+                ['v2.1.3.1'],
+            ),
+            4,
+        )
+
+    def test_next_revision_rejects_exhausted_upstream_version(self):
+        with self.assertRaises(ValueError):
+            module.next_available_revision(
+                'version: 2.1.3+1\n',
+                {'upstreamVersion': '2.1.3', 'revision': 0},
+                ['v2.1.3.99'],
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
