@@ -77,6 +77,10 @@ jobs:
         with:
           distribution: zulu
           java-version: '17'
+      - name: Set up Android command-line tools
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
       - name: Install pinned Flutter source
         uses: actions/checkout@v7
         with:
@@ -91,7 +95,10 @@ jobs:
           ./scripts/flutterw --check-sdk
           ./scripts/flutterw precache --android
       - name: Install Android SDK components
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0" "ndk;28.2.13676358"
+        run: |
+          command -v sdkmanager
+          test -n "$ANDROID_HOME"
+          sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-37" "build-tools;36.0.0" "ndk;28.2.13676358"
       - name: Resolve locked dependencies and apply upstream package patches
         run: |
           ./scripts/flutterw pub get --enforce-lockfile
