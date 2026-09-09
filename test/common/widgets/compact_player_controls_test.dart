@@ -4,6 +4,80 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
+  for (final height in [40.0, 44.0]) {
+    for (final scale in [1.0, 1.8]) {
+      testWidgets('menu label centered at height=$height scale=$scale', (
+        tester,
+      ) async {
+        const target = ValueKey('menu-target');
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: MediaQuery(
+                  data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+                  child: SizedBox(
+                    width: 76,
+                    height: height,
+                    child: PopupMenuButton<int>(
+                      key: target,
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(value: 1, child: Text('选择')),
+                      ],
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: PlayerControlLabel(
+                          child: Text('1.25X', style: TextStyle(fontSize: 13)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        final bounds = tester.getRect(find.byKey(target));
+        final label = tester.getRect(find.text('1.25X'));
+        expect(label.center.dy, closeTo(bounds.center.dy, .01));
+        expect(label.center.dx, closeTo(bounds.center.dx, .01));
+        // The alignment wrapper must not shrink the menu's hit target.
+        await tester.tapAt(bounds.topLeft + const Offset(3, 3));
+        await tester.pumpAndSettle();
+        expect(find.text('选择'), findsOneWidget);
+      });
+    }
+  }
+
+  testWidgets('time label centers within an option tile', (tester) async {
+    const target = ValueKey('time-target');
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              key: target,
+              width: 76,
+              height: 44,
+              child: PlayerControlLabel(
+                child: Text(
+                  '01:23 / 04:56',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(
+      tester.getCenter(find.text('01:23 / 04:56')).dy,
+      tester.getCenter(find.byKey(target)).dy,
+    );
+  });
+
   Widget app(
     double width,
     double scale, {

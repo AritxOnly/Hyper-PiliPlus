@@ -1,5 +1,19 @@
 import 'package:material_ui/material_ui.dart';
 
+/// Center the label within the entire menu button's touch target.
+class PlayerControlLabel extends StatelessWidget {
+  const PlayerControlLabel({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    widthFactor: 1,
+    heightFactor: 1,
+    child: child,
+  );
+}
+
 /// Keep the seek rail flexible instead of scaling all controls to fit.
 class CompactPlayerControls extends StatelessWidget {
   const CompactPlayerControls({
@@ -106,54 +120,47 @@ class CompactPlayerControls extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final wide = constraints.maxWidth >= 440;
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: .26),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white.withValues(alpha: .08)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: SizedBox(
-            height: 48,
-            child: Row(
-              textDirection: TextDirection.ltr,
-              children: [
-                SizedBox(width: 42, height: 44, child: playButton),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: progress,
-                  ),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: SizedBox(
+          height: 48,
+          child: Row(
+            textDirection: TextDirection.ltr,
+            children: [
+              SizedBox(width: 42, height: 44, child: playButton),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: progress,
                 ),
-                if (constraints.maxWidth >= 300)
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 120),
-                    child: time,
-                  ),
-                if (wide)
-                  SizedBox(
-                    width: 48,
-                    child: Center(child: SizedBox(height: 40, child: speed)),
-                  ),
-                IconButton(
-                  constraints: const BoxConstraints.tightFor(
-                    width: 40,
-                    height: 44,
-                  ),
-                  padding: EdgeInsets.zero,
-                  tooltip: '播放选项',
-                  onPressed: () => _showOptions(context),
-                  icon: const Icon(
-                    Icons.more_horiz_rounded,
-                    size: 22,
-                    color: Colors.white,
-                  ),
+              ),
+              if (constraints.maxWidth >= 300)
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 120),
+                  child: time,
                 ),
-                if (fullscreenButton case final button?)
-                  SizedBox(width: 40, height: 44, child: button),
-              ],
-            ),
+              if (wide)
+                SizedBox(
+                  width: 48,
+                  child: Center(child: SizedBox(height: 40, child: speed)),
+                ),
+              IconButton(
+                constraints: const BoxConstraints.tightFor(
+                  width: 40,
+                  height: 44,
+                ),
+                padding: EdgeInsets.zero,
+                tooltip: '播放选项',
+                onPressed: () => _showOptions(context),
+                icon: const Icon(
+                  Icons.more_horiz_rounded,
+                  size: 22,
+                  color: Colors.white,
+                ),
+              ),
+              if (fullscreenButton case final button?)
+                SizedBox(width: 40, height: 44, child: button),
+            ],
           ),
         ),
       );

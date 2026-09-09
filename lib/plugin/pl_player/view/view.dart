@@ -445,16 +445,18 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
 
       /// 时间进度
       BottomControlType.time => Obx(
-        () => Text(
-          '${DurationUtils.formatDuration(plPlayerController.position.value)} / ${DurationUtils.formatDuration(plPlayerController.duration.value)}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textDirection: TextDirection.ltr,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 11,
-            fontWeight: FontWeight.w400,
-            fontFeatures: [FontFeature.tabularFigures()],
+        () => PlayerControlLabel(
+          child: Text(
+            '${DurationUtils.formatDuration(plPlayerController.position.value)} / ${DurationUtils.formatDuration(plPlayerController.duration.value)}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textDirection: TextDirection.ltr,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
           ),
         ),
       ),
@@ -514,9 +516,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                type.label,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+              child: PlayerControlLabel(
+                child: Text(
+                  type.label,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
               ),
             ),
           );
@@ -638,9 +642,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                fit.desc,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+              child: PlayerControlLabel(
+                child: Text(
+                  fit.desc,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
               ),
             ),
           );
@@ -778,10 +784,12 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              "${plPlayerController.playbackSpeed}X",
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              semanticsLabel: "${plPlayerController.playbackSpeed}倍速",
+            child: PlayerControlLabel(
+              child: Text(
+                "${plPlayerController.playbackSpeed}X",
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                semanticsLabel: "${plPlayerController.playbackSpeed}倍速",
+              ),
             ),
           ),
         ),
@@ -854,9 +862,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                currentVideoQa.shortDesc,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+              child: PlayerControlLabel(
+                child: Text(
+                  currentVideoQa.shortDesc,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
               ),
             ),
           );

@@ -53,7 +53,7 @@ class BottomControl extends StatelessWidget {
     final bufferedBarColor = primary.withValues(alpha: 0.4);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 2),
       child: buildBottomControl(
         Obx(
           () => Offstage(
