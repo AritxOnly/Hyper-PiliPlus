@@ -27,6 +27,8 @@
 
 ## 已发现的依赖差异
 
+`dynamic_color` 的锁文件曾误记为 `2.1.0`，与 `flutter_miuix 1.1.1` 的 `^1.9.0` 约束冲突。现已将该项及归档 SHA-256 校正为本机 Release 实际使用的 `1.9.0`；CI 继续启用 `--enforce-lockfile`，不通过自动升级掩盖不一致。
+
 此前 Release 实际使用的 `media_kit` Git 提交为 `08b7b9410968fa39ae2fc814d57f9f889079afc9`，仓库锁文件记录的是 `73771ec38176be2d984a3049c28177bce23b54a0`。严格离线恢复锁文件会尝试获取本机缺失的 Git 仓库，因此本次没有重解析或升级依赖。
 
 `tool/dependencies-local-snapshot.json` 记录了当前全部包的解析位置（SDK、缓存目录均用占位符），用于后续核对实际版本。它是诊断快照，不替代 `pubspec.lock`。SDK 迁移已完成；全新电脑要复现之前 Release 的全部依赖，还需要单独校准锁文件。恢复仓库锁文件可使用 `./scripts/flutterw pub get --enforce-lockfile`，但不能据此认为使用的就是此前本机依赖。
