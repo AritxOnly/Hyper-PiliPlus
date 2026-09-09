@@ -174,7 +174,7 @@ class _MainReplyPageState extends State<MainReplyPage>
   Widget buildReplyHeader(ColorScheme colorScheme) {
     final secondary = colorScheme.secondary;
     return SliverFloatingHeaderWidget(
-      backgroundColor: colorScheme.surface,
+      backgroundColor: colorScheme.surfaceContainerLow,
       child: Padding(
         padding: const .fromLTRB(12, 2.5, 6, 2.5),
         child: Row(

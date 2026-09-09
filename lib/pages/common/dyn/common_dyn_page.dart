@@ -5,6 +5,7 @@ import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
+import 'package:PiliPlus/common/widgets/scroll_position_bookmark.dart';
 import 'package:PiliPlus/common/widgets/sliver/sliver_pinned_header.dart';
 import 'package:PiliPlus/common/widgets/view_safe_area.dart';
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
@@ -100,7 +101,7 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
   Widget buildReplyHeader() {
     final secondary = theme.colorScheme.secondary;
     return SliverPinnedHeader(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
       child: Padding(
         padding: const .fromLTRB(12, 2.5, 6, 2.5),
         child: Row(
@@ -221,6 +222,7 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
 
   void replyReply(BuildContext context, ReplyInfo replyItem, int? id) {
     EasyThrottle.throttle('replyReply', const Duration(milliseconds: 500), () {
+      final bookmark = ScrollPositionBookmark.capture(context);
       int oid = replyItem.oid.toInt();
       int rpid = replyItem.id.toInt();
       Widget replyReplyPage({bool showBackBtn = true}) {
@@ -255,11 +257,11 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
       }
 
       if (isPortrait) {
-        Get.to(
+        Get.to<void>(
           replyReplyPage,
           routeName: 'dynamicDetail-Copy',
           arguments: arguments,
-        );
+        )?.then((_) => bookmark.restore());
       } else {
         final scaffoldState = MiniScaffold.maybeOf(context);
         if (scaffoldState != null) {
@@ -269,11 +271,11 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
             (context) => replyReplyPage(showBackBtn: false),
           );
         } else {
-          Get.to(
+          Get.to<void>(
             replyReplyPage,
             routeName: 'dynamicDetail-Copy',
             arguments: arguments,
-          );
+          )?.then((_) => bookmark.restore());
         }
       }
     });

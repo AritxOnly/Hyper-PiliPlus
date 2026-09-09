@@ -97,8 +97,9 @@ class _DynamicDetailPageState
   }
 
   ScrollableState? _scrollable;
-  late final Object? _transitionTag =
-      Get.arguments is Map ? Get.arguments['heroTag'] : null;
+  late final Object? _transitionTag = Get.arguments is Map
+      ? Get.arguments['heroTag']
+      : null;
 
   @override
   void dispose() {
@@ -112,6 +113,7 @@ class _DynamicDetailPageState
       /// apply `lib/scripts/scrollable.patch`
       isScrolling: () => _scrollable?.shouldIgnorePointer ?? false,
       child: SimpleScaffold(
+        backgroundColor: theme.colorScheme.surfaceContainerLow,
         appBar: _buildAppBar(),
         body: Padding(
           padding: EdgeInsets.only(left: padding.left, right: padding.right),
@@ -128,7 +130,7 @@ class _DynamicDetailPageState
         ? page
         : VideoPageHeroTarget(
             tag: tag,
-            surfaceColor: Theme.of(context).canvasColor,
+            surfaceColor: theme.colorScheme.surfaceContainerLow,
             child: page,
           );
   }
@@ -656,7 +658,7 @@ class _DynamicDetailPageState
       ),
     );
     return SliverFloatingHeaderWidget(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
       child: child,
     );
   }

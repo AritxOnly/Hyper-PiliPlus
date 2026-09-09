@@ -66,7 +66,9 @@ class DynamicPanel extends StatelessWidget {
         ? 'dynamic-${item.idStr}-${identityHashCode(context)}'
         : null;
     final child = Material(
-      color: theme.colorScheme.surfaceContainer,
+      color: isDetail
+          ? theme.colorScheme.surfaceContainerLow
+          : theme.colorScheme.surfaceContainer,
       borderRadius: isCard ? const .all(.circular(12)) : null,
       clipBehavior: isCard ? Clip.antiAlias : Clip.none,
       child: InkWell(
