@@ -1,4 +1,5 @@
 import 'package:PiliPlus/common/widgets/native_navigation_occlusion.dart';
+import 'package:PiliPlus/common/widgets/image_viewer/hero_dialog_route.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
@@ -72,6 +73,33 @@ void main() {
     expect(calls, [true]);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+    expect(calls, [true, false]);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('transparent image routes occlude native chrome', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push(
+                HeroDialogRoute<void>(
+                  pageBuilder: (_, _, _) => const NativeNavigationForeground(
+                    child: SizedBox.expand(),
+                  ),
+                ),
+              ),
+              child: const Text('open image'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open image'));
+    await tester.pumpAndSettle();
+    expect(calls, [true]);
+    Navigator.of(tester.element(find.byType(NativeNavigationForeground))).pop();
+    await tester.pumpAndSettle();
     expect(calls, [true, false]);
   }, variant: TargetPlatformVariant.only(TargetPlatform.android));
 

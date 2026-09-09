@@ -6,14 +6,19 @@ import 'package:PiliPlus/common/widgets/flutter/list_tile.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/models/common/mine_expand_content.dart';
 import 'package:PiliPlus/models/common/nav_bar_config.dart';
+import 'package:PiliPlus/models_new/fav/fav_folder/data.dart';
 import 'package:PiliPlus/models_new/fav/fav_folder/list.dart';
+import 'package:PiliPlus/models_new/history/data.dart';
+import 'package:PiliPlus/models_new/history/list.dart';
 import 'package:PiliPlus/pages/common/common_page.dart';
 import 'package:PiliPlus/pages/home/view.dart';
 import 'package:PiliPlus/pages/login/controller.dart';
 import 'package:PiliPlus/pages/main/controller.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/pages/mine/widgets/item.dart';
+import 'package:PiliPlus/pages/mine/widgets/recent_history_item.dart';
 import 'package:PiliPlus/utils/bili_utils.dart';
 import 'package:PiliPlus/utils/extension/get_ext.dart';
 import 'package:PiliPlus/utils/extension/num_ext.dart';
@@ -90,14 +95,16 @@ class _MediaPageState extends CommonPageState<MinePage>
                         padding: const .symmetric(vertical: 12),
                         child: _buildUserInfo(theme, secondary),
                       ),
-                      Padding(
-                        padding: const .symmetric(vertical: 4),
-                        child: _buildActions(secondary),
+                      Obx(
+                        () => Padding(
+                          padding: const .symmetric(vertical: 4),
+                          child: _buildActions(secondary),
+                        ),
                       ),
                       Obx(
                         () => controller.loadingState.value is Loading
                             ? const SizedBox.shrink()
-                            : _buildFav(theme, secondary),
+                            : _buildExpandContent(theme, secondary),
                       ),
                     ],
                   ),
@@ -470,11 +477,15 @@ class _MediaPageState extends CommonPageState<MinePage>
     () => controller.onRefresh(isManual: false),
   );
 
-  Widget _buildFav(ThemeData theme, Color secondary) {
+  Widget _buildExpandContent(ThemeData theme, Color secondary) {
+    final isHistory =
+        controller.expandContent.value == MineExpandContent.history;
+    final title = isHistory ? '最近播放' : '我的收藏';
+    final route = isHistory ? '/history' : '/fav';
     return Column(
       children: [
         ListTile(
-          onTap: () => Get.toNamed('/fav')?.whenComplete(_autoRefresh),
+          onTap: () => Get.toNamed(route)?.whenComplete(_autoRefresh),
           dense: true,
           title: Padding(
             padding: const EdgeInsets.only(left: 10),
@@ -482,20 +493,12 @@ class _MediaPageState extends CommonPageState<MinePage>
               TextSpan(
                 children: [
                   TextSpan(
-                    text: '我的收藏  ',
+                    text: '$title  ',
                     style: TextStyle(
                       fontSize: theme.textTheme.titleMedium!.fontSize,
                       fontWeight: .bold,
                     ),
                   ),
-                  if (controller.favFolderCount != null)
-                    TextSpan(
-                      text: "${controller.favFolderCount}  ",
-                      style: TextStyle(
-                        fontSize: theme.textTheme.titleSmall!.fontSize,
-                        color: secondary,
-                      ),
-                    ),
                   WidgetSpan(
                     child: Icon(
                       Icons.arrow_forward_ios,
@@ -513,68 +516,20 @@ class _MediaPageState extends CommonPageState<MinePage>
             icon: const Icon(Icons.refresh, size: 20),
           ),
         ),
-        _buildFavBody(theme, secondary, controller.loadingState.value),
+        _buildExpandContentBody(controller.loadingState.value, isHistory),
       ],
     );
   }
 
-  Widget _buildFavBody(
-    ThemeData theme,
-    Color secondary,
-    LoadingState loadingState,
-  ) {
+  Widget _buildExpandContentBody(LoadingState loadingState, bool isHistory) {
     return switch (loadingState) {
       Loading() => const SizedBox.shrink(),
       Success(:final response) => Builder(
         builder: (context) {
-          List<FavFolderInfo>? favFolderList = response.list;
-          if (favFolderList == null || favFolderList.isEmpty) {
-            return const SizedBox.shrink();
+          if (isHistory) {
+            return _buildRecentHistoryBody(response as HistoryData);
           }
-          bool flag = (controller.favFolderCount ?? 0) > favFolderList.length;
-          return SizedBox(
-            height: 200,
-            child: ListView.separated(
-              controller: controller.scrollController,
-              padding: const .only(left: 20, top: 10, right: 20),
-              itemCount: response.list.length + (flag ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (flag && index == favFolderList.length) {
-                  return Padding(
-                    padding: const .only(bottom: 35),
-                    child: Center(
-                      child: IconButton(
-                        tooltip: '查看更多',
-                        style: ButtonStyle(
-                          padding: const WidgetStatePropertyAll(.zero),
-                          backgroundColor: WidgetStatePropertyAll(
-                            theme.colorScheme.secondaryContainer.withValues(
-                              alpha: 0.5,
-                            ),
-                          ),
-                        ),
-                        onPressed: () =>
-                            Get.toNamed('/fav')?.whenComplete(_autoRefresh),
-                        icon: Icon(
-                          Icons.arrow_forward_ios,
-                          size: 18,
-                          color: secondary,
-                        ),
-                      ),
-                    ),
-                  );
-                } else {
-                  return FavFolderItem(
-                    heroTag: Utils.generateRandomString(8),
-                    item: response.list[index],
-                    onPop: _autoRefresh,
-                  );
-                }
-              },
-              scrollDirection: .horizontal,
-              separatorBuilder: (_, _) => const SizedBox(width: 14),
-            ),
-          );
+          return _buildFavoriteBody(response as FavFolderData);
         },
       ),
       Error(:final errMsg) => SizedBox(
@@ -587,5 +542,46 @@ class _MediaPageState extends CommonPageState<MinePage>
         ),
       ),
     };
+  }
+
+  Widget _buildRecentHistoryBody(HistoryData data) {
+    final List<HistoryItemModel>? historyList = data.list;
+    if (historyList == null || historyList.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return SizedBox(
+      height: 184,
+      child: ListView.separated(
+        controller: controller.scrollController,
+        padding: const .only(left: 20, top: 10, right: 20),
+        itemCount: historyList.length,
+        itemBuilder: (context, index) =>
+            RecentHistoryItem(item: historyList[index]),
+        scrollDirection: .horizontal,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+      ),
+    );
+  }
+
+  Widget _buildFavoriteBody(FavFolderData data) {
+    final List<FavFolderInfo>? favoriteList = data.list;
+    if (favoriteList == null || favoriteList.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return SizedBox(
+      height: 200,
+      child: ListView.separated(
+        controller: controller.scrollController,
+        padding: const .only(left: 20, top: 10, right: 20),
+        itemCount: favoriteList.length,
+        itemBuilder: (context, index) => FavFolderItem(
+          heroTag: Utils.makeHeroTag(favoriteList[index].id),
+          item: favoriteList[index],
+          onPop: _autoRefresh,
+        ),
+        scrollDirection: .horizontal,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+      ),
+    );
   }
 }

@@ -9,14 +9,24 @@ import 'package:material_ui/material_ui.dart';
 
 const double _cardRadius = 12;
 const double _pageRadius = 72;
-const Curve _containerCurve = Interval(0, 0.66, curve: Curves.easeOutCubic);
-const Curve _revealCurve = Interval(0.42, 0.66, curve: Curves.easeInOutCubic);
-const Duration videoPageTransitionDuration = Duration(milliseconds: 560);
-const Duration videoPageReverseTransitionDuration = Duration(milliseconds: 500);
+const Curve _containerCurve = Interval(
+  0,
+  0.82,
+  curve: Curves.easeInOutCubicEmphasized,
+);
+// Reveal the destination during the first half of the expansion. This leaves
+// an already-painted page in place when the card reaches the viewport instead
+// of holding a blank surface until the route settles.
+const Curve _revealCurve = Interval(0.18, 0.58, curve: Curves.easeInOutCubic);
+// The player decoder is heavier than ordinary page UI. Start it only after
+// that UI is visible, but while the card is still completing its expansion.
+const double _entryContentReadyAt = 0.62;
+const Duration videoPageTransitionDuration = Duration(milliseconds: 680);
+const Duration videoPageReverseTransitionDuration = Duration(milliseconds: 320);
 ({Object tag, RenderBox box, BuildContext context})? _pendingVideoTransition;
 final _enteringVideoPages = <Object, Completer<bool>>{};
 
-/// Fetch data immediately, but avoid creating a decoder during the card flight.
+/// Begin decoder setup only after the page is visibly taking over the card.
 Future<bool> waitForVideoPageEntry(Object? tag) async =>
     await _enteringVideoPages[tag]?.future ?? true;
 
@@ -95,8 +105,20 @@ class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
   void install() {
     super.install();
     if (_entryTag case final tag?) _enteringVideoPages[tag] = _entryReady;
-    // Listen to the real controller, not Hero's offstage proxy animation.
-    controller?.addStatusListener(_entryStatus);
+    // Listen to the real controller, not Hero's offstage proxy animation. The
+    // decoder begins only after the revealed page UI has taken over, but before
+    // the card finishes its final expansion.
+    controller
+      ?..addStatusListener(_entryStatus)
+      ..addListener(_entryProgress);
+  }
+
+  void _entryProgress() {
+    final animationController = controller;
+    if (animationController?.status == AnimationStatus.forward &&
+        animationController!.value >= _entryContentReadyAt) {
+      _finishEntry(true);
+    }
   }
 
   void _entryStatus(AnimationStatus status) {
@@ -153,7 +175,9 @@ class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
   @override
   void dispose() {
     _finishEntry(false);
-    controller?.removeStatusListener(_entryStatus);
+    controller
+      ?..removeStatusListener(_entryStatus)
+      ..removeListener(_entryProgress);
     if (identical(_enteringVideoPages[_entryTag], _entryReady)) {
       _enteringVideoPages.remove(_entryTag);
     }
@@ -542,8 +566,8 @@ Widget _buildFlightShuttle(
       final cardOpacity =
           1 -
           const Interval(
-            0.08,
-            0.88,
+            0.04,
+            0.55,
             curve: Curves.easeInOutCubic,
           ).transform(progress);
       return ClipRRect(

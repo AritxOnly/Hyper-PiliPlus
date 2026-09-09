@@ -108,12 +108,14 @@ void main() {
               .color,
           firstSurface,
         );
-        await tester.pump(const Duration(milliseconds: 264)); // 50% of entry
+        await tester.pump(
+          Duration(
+            milliseconds: videoPageTransitionDuration.inMilliseconds ~/ 2,
+          ),
+        );
         expect(_pageOpacity(tester), greaterThan(0));
         expect(_pageOpacity(tester), lessThan(1));
-        await tester.pump(
-          const Duration(milliseconds: 100),
-        ); // expansion complete
+        await tester.pump(videoPageTransitionDuration); // expansion complete
         expect(_pageOpacity(tester), 1);
         expect(
           tester
@@ -142,11 +144,13 @@ void main() {
         await tester.pump();
         var previous = full;
         var previousOpacity = 1.0;
-        for (var step = 1; step <= 10; step++) {
+        final reverseStep = Duration(
+          milliseconds:
+              (videoPageReverseTransitionDuration.inMilliseconds - 24) ~/ 8,
+        );
+        for (var step = 1; step <= 9; step++) {
           await tester.pump(
-            step == 1
-                ? const Duration(milliseconds: 16)
-                : const Duration(milliseconds: 50),
+            step == 1 ? const Duration(milliseconds: 16) : reverseStep,
           );
           final rect = tester.getRect(page);
           expect(rect.width, lessThan(previous.width));
@@ -217,10 +221,55 @@ void main() {
       },
     );
   }
+  testWidgets('content preparation starts before the entry settles', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      GetMaterialApp(
+        navigatorObservers: [routeObserver],
+        home: const _SourcePage(preserveChildHeroes: false),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('video-card')));
+    await tester.pump();
+    bool? ready;
+    final pending = waitForVideoPageEntry('video-card-transition-test').then(
+      (value) => ready = value,
+    );
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pump();
+    final route = Get.routing.route as VideoPageTransitionRoute<void>;
+    expect(ready, isTrue);
+    expect(route.animation!.value, lessThan(1));
+    await tester.pumpAndSettle();
+    await pending;
+  });
+  testWidgets('page UI is visible around the middle of card expansion', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      GetMaterialApp(
+        navigatorObservers: [routeObserver],
+        home: const _SourcePage(preserveChildHeroes: false),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('video-card')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 410));
+    final route = Get.routing.route as VideoPageTransitionRoute<void>;
+    expect(_pageOpacity(tester), 1);
+    expect(route.animation!.value, lessThan(1));
+    await tester.pumpAndSettle();
+  });
 }
 
 void interruptedEntryTests() {
-  for (final delay in [16, 120, 280, 500]) {
+  for (final delay in [
+    16,
+    120,
+    280,
+    videoPageTransitionDuration.inMilliseconds - 80,
+  ]) {
     for (final nested in [false, true]) {
       testWidgets('return during entry at ${delay}ms (nested: $nested)', (
         tester,

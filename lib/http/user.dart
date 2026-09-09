@@ -86,13 +86,14 @@ abstract final class UserHttp {
     required String type,
     int? max,
     int? viewAt,
+    int pageSize = 20,
     Account? account,
   }) async {
     final res = await Request().get(
       Api.historyList,
       queryParameters: {
         'type': type,
-        'ps': 20,
+        'ps': pageSize,
         'max': max ?? 0,
         'view_at': viewAt ?? 0,
       },

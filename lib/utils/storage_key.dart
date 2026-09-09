@@ -232,6 +232,7 @@ abstract final class SettingBoxKey {
       tabBarSort = 'tabBarSort',
       dynamicBadgeMode = 'dynamicBadgeMode',
       msgBadgeMode = 'msgBadgeMode',
+      mineExpandContent = 'mineExpandContent',
       msgUnReadTypeV2 = 'msgUnReadTypeV2',
       navBarSort = 'navBarSort',
       tempPlayerConf = 'tempPlayerConf',

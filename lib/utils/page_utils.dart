@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:PiliPlus/common/widgets/fractionally_sized_box.dart';
 import 'package:PiliPlus/common/widgets/image_viewer/gallery_viewer.dart';
 import 'package:PiliPlus/common/widgets/image_viewer/hero_dialog_route.dart';
+import 'package:PiliPlus/common/widgets/native_navigation_occlusion.dart';
 import 'package:PiliPlus/common/widgets/video_card/video_card_transition.dart';
 import 'package:PiliPlus/grpc/im.dart';
 import 'package:PiliPlus/http/dynamics.dart';
@@ -56,13 +57,16 @@ abstract final class PageUtils {
   }) {
     return Get.key.currentState!.push<void>(
       HeroDialogRoute(
-        pageBuilder: (context, animation, secondaryAnimation) => GalleryViewer(
-          sources: imgList,
-          initIndex: initialPage,
-          quality: quality ?? GlobalData().imgQuality,
-          onPageChanged: onPageChanged,
-          tag: tag,
-        ),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            NativeNavigationForeground(
+              child: GalleryViewer(
+                sources: imgList,
+                initIndex: initialPage,
+                quality: quality ?? GlobalData().imgQuality,
+                onPageChanged: onPageChanged,
+                tag: tag,
+              ),
+            ),
       ),
     );
   }

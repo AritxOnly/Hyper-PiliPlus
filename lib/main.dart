@@ -22,6 +22,7 @@ import 'package:PiliPlus/utils/calc_window_position.dart';
 import 'package:PiliPlus/utils/date_utils.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
 import 'package:PiliPlus/utils/font_utils.dart';
+import 'package:PiliPlus/utils/freeform_window_insets.dart';
 import 'package:PiliPlus/utils/json_file_handler.dart';
 import 'package:PiliPlus/utils/max_screen_size.dart';
 import 'package:PiliPlus/utils/path_utils.dart';
@@ -297,15 +298,27 @@ class MyApp extends StatelessWidget {
   static Widget _builder(BuildContext context, Widget? child) {
     final uiScale = Pref.uiScale;
     final mediaQuery = MediaQuery.of(context);
+    final (padding, viewPadding) = Platform.isAndroid
+        ? (
+            FreeformWindowInsets.normalize(
+              insets: mediaQuery.padding,
+              viewSize: mediaQuery.size,
+            ),
+            FreeformWindowInsets.normalize(
+              insets: mediaQuery.viewPadding,
+              viewSize: mediaQuery.size,
+            ),
+          )
+        : (mediaQuery.padding, mediaQuery.viewPadding);
     final textScaler = TextScaler.linear(Pref.defaultTextScale);
     if (uiScale != 1.0) {
       child = MediaQuery(
         data: mediaQuery.copyWith(
           textScaler: textScaler,
           size: mediaQuery.size / uiScale,
-          padding: tmpPadding ?? mediaQuery.padding / uiScale,
+          padding: tmpPadding ?? padding / uiScale,
           viewInsets: mediaQuery.viewInsets / uiScale,
-          viewPadding: tmpPadding ?? mediaQuery.viewPadding / uiScale,
+          viewPadding: tmpPadding ?? viewPadding / uiScale,
           devicePixelRatio: mediaQuery.devicePixelRatio * uiScale,
         ),
         child: child!,
@@ -314,8 +327,8 @@ class MyApp extends StatelessWidget {
       child = MediaQuery(
         data: mediaQuery.copyWith(
           textScaler: textScaler,
-          padding: tmpPadding,
-          viewPadding: tmpPadding,
+          padding: tmpPadding ?? padding,
+          viewPadding: tmpPadding ?? viewPadding,
         ),
         child: child!,
       );

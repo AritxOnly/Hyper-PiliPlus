@@ -10,6 +10,7 @@ import 'package:PiliPlus/models/common/dynamic/dynamics_type.dart';
 import 'package:PiliPlus/models/common/dynamic/up_panel_position.dart';
 import 'package:PiliPlus/models/common/follow_order_type.dart';
 import 'package:PiliPlus/models/common/member/tab_type.dart';
+import 'package:PiliPlus/models/common/mine_expand_content.dart';
 import 'package:PiliPlus/models/common/msg/msg_unread_type.dart';
 import 'package:PiliPlus/models/common/nav_bar_config.dart';
 import 'package:PiliPlus/models/common/reply/reply_sort_type.dart';
@@ -173,6 +174,15 @@ abstract final class Pref {
 
   static NavigationBarType get defaultHomePage =>
       NavigationBarType.values[defaultHomePageIndex];
+
+  static MineExpandContent get mineExpandContent =>
+      MineExpandContent.values[_setting.get(
+        SettingBoxKey.mineExpandContent,
+        defaultValue: MineExpandContent.history.index,
+      )];
+
+  static set mineExpandContent(MineExpandContent value) =>
+      _setting.put(SettingBoxKey.mineExpandContent, value.index);
 
   static int get defaultHomePageIndex => _setting.get(
     SettingBoxKey.defaultHomePage,
@@ -1017,7 +1027,7 @@ abstract final class Pref {
       _setting.get(SettingBoxKey.saveReply, defaultValue: true);
 
   static bool get floatingNavBar =>
-      _setting.get(SettingBoxKey.floatingNavBar, defaultValue: false);
+      _setting.get(SettingBoxKey.floatingNavBar, defaultValue: true);
 
   static bool get miuixBackdropSampling =>
       _setting.get(SettingBoxKey.miuixBackdropSampling, defaultValue: false);

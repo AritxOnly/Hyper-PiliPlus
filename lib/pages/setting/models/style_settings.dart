@@ -14,6 +14,7 @@ import 'package:PiliPlus/models/common/bar_hide_type.dart';
 import 'package:PiliPlus/models/common/dynamic/dynamic_badge_mode.dart';
 import 'package:PiliPlus/models/common/dynamic/up_panel_position.dart';
 import 'package:PiliPlus/models/common/home_tab_type.dart';
+import 'package:PiliPlus/models/common/mine_expand_content.dart';
 import 'package:PiliPlus/models/common/msg/msg_unread_type.dart';
 import 'package:PiliPlus/models/common/nav_bar_config.dart';
 import 'package:PiliPlus/models/common/theme/theme_color_type.dart';
@@ -122,7 +123,7 @@ List<SettingsModel> get styleSettings => [
     title: '柔光玻璃底栏',
     leading: Icon(MdiIcons.soundbar),
     setKey: SettingBoxKey.floatingNavBar,
-    defaultVal: false,
+    defaultVal: true,
     needReboot: true,
   ),
   const SwitchModel(
@@ -340,6 +341,19 @@ List<SettingsModel> get styleSettings => [
           .put(SettingBoxKey.defaultHomePage, value.index)
           .whenComplete(setState);
       SmartDialog.showToast('重启生效');
+    },
+  ),
+  PopupModel(
+    title: '我的页展开内容',
+    leading: const Icon(Icons.account_box_outlined),
+    value: () => Pref.mineExpandContent,
+    items: MineExpandContent.values,
+    onSelected: (value, setState) {
+      Pref.mineExpandContent = value;
+      if (Get.isRegistered<MineController>()) {
+        Get.find<MineController>().onExpandContentChanged(value);
+      }
+      setState();
     },
   ),
   const NormalModel(
