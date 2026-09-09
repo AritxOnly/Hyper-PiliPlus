@@ -50,7 +50,7 @@ Base64 不是加密；不要将编码内容、密码、`key.properties` 或 keys
 
 Android SDK 平台的安装标识为 `platforms;android-37.0`（包含 `.0`），不是 `platforms;android-37`；Gradle 的 `compileSdk` / `targetSdk` 仍填写整数 `37`。工作流安装后会检查对应 `android.jar` 是否存在。
 
-Flutter 按固定 SHA 检出后还必须获取官方 `3.47.2` 标签：仅有提交的浅克隆可能被 Flutter 识别成 `0.0.0-unknown`。工作流显式获取并校验标签对应的提交，并在依赖解析前验证 `flutter --version --machine` 与 `.fvmrc` 一致，不修改或伪造 SDK 版本。
+Flutter 按固定 SHA 检出后还必须获取官方 `3.47.2` 标签：仅有提交的浅克隆可能被 Flutter 识别成 `0.0.0-unknown`。工作流显式获取并校验标签对应的提交，单独执行 `flutter --version` 完成首次初始化，再读取 Flutter 自动生成的 `bin/cache/flutter.version.json`，核对版本与 `.fvmrc`、提交与 SDK HEAD 一致。不要直接将首次启动的 stdout 管道交给 JSON 解析器：其中可能混入工具自身的依赖解析日志。此过程不修改或伪造 SDK 版本。
 
 首次云构建使用仓库 `pubspec.lock`（`--enforce-lockfile`）。它与旧本机缓存存在已知差异（见 [Flutter 环境说明](flutter-environment.md)），因此本机成功不能代替首次云运行验证；如锁文件/补丁不兼容，流程会停止，不会静默升级依赖或发布。
 

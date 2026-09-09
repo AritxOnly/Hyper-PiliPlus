@@ -98,14 +98,21 @@ jobs:
           git -C .fvm/flutter_sdk apply --check "$GITHUB_WORKSPACE/tool/flutter-sdk.patch"
           git -C .fvm/flutter_sdk apply "$GITHUB_WORKSPACE/tool/flutter-sdk.patch"
           ./scripts/flutterw --check-sdk
-          ./scripts/flutterw --version --machine | python3 -c '
-          import json, sys
-          version = json.load(sys.stdin)
+          # Bootstrap separately: the first launch can print non-JSON dependency logs.
+          ./scripts/flutterw --version
+          python3 - <<'PY'
+          import json, subprocess
+          # Flutter writes this structured cache before printing its version.
+          version = json.load(open(".fvm/flutter_sdk/bin/cache/flutter.version.json"))
           expected = json.load(open(".fvmrc"))["flutter"]
           if version["frameworkVersion"] != expected:
               raise SystemExit("Unexpected Flutter version: " + version["frameworkVersion"])
+          revision = subprocess.check_output(
+              ["git", "-C", ".fvm/flutter_sdk", "rev-parse", "HEAD"], text=True).strip()
+          if version["frameworkRevision"] != revision:
+              raise SystemExit("Flutter version cache does not match the pinned SDK commit")
           print("Verified Flutter " + expected)
-          '
+          PY
           ./scripts/flutterw precache --android
       - name: Install Android SDK components
         run: |
