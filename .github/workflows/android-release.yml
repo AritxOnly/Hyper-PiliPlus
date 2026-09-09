@@ -1,0 +1,181 @@
+name: Hyper-PiliPlus Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish a GitHub Release (otherwise upload build artifacts only)
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+      release_tag:
+        type: string
+        default: ''
+    secrets:
+      SIGN_KEYSTORE_BASE64:
+        required: true
+      KEYSTORE_PASSWORD:
+        required: true
+      KEY_ALIAS:
+        required: true
+      KEY_PASSWORD:
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hyper-android-release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    env:
+      # Match the hosted origin recorded in pubspec.lock.
+      PUB_HOSTED_URL: https://pub.flutter-io.cn
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Generate flavor version
+        id: version
+        run: python3 scripts/release_metadata.py --github-output "$GITHUB_OUTPUT"
+      - name: Validate requested release tag
+        env:
+          REQUESTED_TAG: ${{ inputs.release_tag }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: test -z "$REQUESTED_TAG" || test "$REQUESTED_TAG" = "$RELEASE_TAG"
+      - name: Refuse to overwrite an existing release tag
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+          url = f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/git/ref/tags/{os.environ['RELEASE_TAG']}"
+          req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN']})
+          try:
+              urllib.request.urlopen(req).close()
+          except urllib.error.HTTPError as error:
+              if error.code != 404:
+                  raise
+          else:
+              raise SystemExit('Tag exists: increment tool/release.json revision before publishing')
+          PY
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: '17'
+      - name: Install pinned Flutter source
+        uses: actions/checkout@v7
+        with:
+          repository: flutter/flutter
+          ref: d3b14c876900e553bc736ca19295fc09e3853e8e
+          path: .fvm/flutter_sdk
+          persist-credentials: false
+      - name: Restore the verified Flutter patch
+        run: |
+          git -C .fvm/flutter_sdk apply --check "$GITHUB_WORKSPACE/tool/flutter-sdk.patch"
+          git -C .fvm/flutter_sdk apply "$GITHUB_WORKSPACE/tool/flutter-sdk.patch"
+          ./scripts/flutterw --check-sdk
+          ./scripts/flutterw precache --android
+      - name: Install Android SDK components
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0" "ndk;28.2.13676358"
+      - name: Resolve locked dependencies and apply upstream package patches
+        run: |
+          ./scripts/flutterw pub get --enforce-lockfile
+          python3 scripts/prepare_android_ci.py
+      - name: Test release metadata and app
+        run: |
+          python3 -m unittest discover -s test/scripts -p '*_test.py'
+          ./scripts/flutterw test --no-pub
+      - name: Decode signing keystore
+        env:
+          SIGN_KEYSTORE_BASE64: ${{ secrets.SIGN_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          for name in ('SIGN_KEYSTORE_BASE64', 'KEYSTORE_PASSWORD', 'KEY_ALIAS', 'KEY_PASSWORD'):
+              if not os.environ.get(name):
+                  raise SystemExit('Missing required secret: ' + name)
+          path = Path(os.environ['RUNNER_TEMP']) / 'hyper-release.jks'
+          data = base64.b64decode(''.join(os.environ['SIGN_KEYSTORE_BASE64'].split()), validate=True)
+          if not data:
+              raise SystemExit('Empty signing keystore')
+          with path.open('xb') as output:
+              path.chmod(0o600)
+              output.write(data)
+          PY
+      - name: Build signed APKs
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          ANDROID_SIGNING_STORE_FILE: ${{ runner.temp }}/hyper-release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: >-
+          ./scripts/flutterw build apk --release --split-per-abi --no-pub
+          --build-name="$VERSION" --build-number="$VERSION_CODE"
+          --dart-define-from-file=pili_release.json
+          --android-project-arg requireReleaseSigning=true
+      - name: Verify and collect APKs
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p dist
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            apk="build/app/outputs/flutter-apk/app-${abi}-release.apk"
+            "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$apk"
+            cp "$apk" "dist/Hyper-PiliPlus_android_${VERSION}_${abi}.apk"
+          done
+          cp pili_release.json dist/release-metadata.json
+          cd dist
+          sha256sum *.apk > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-signed-${{ steps.version.outputs.version }}
+          path: dist/*
+          if-no-files-found: error
+      - name: Remove temporary keystore
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          (Path(os.environ['RUNNER_TEMP']) / 'hyper-release.jks').unlink(missing_ok=True)
+          PY
+  publish:
+    if: inputs.publish
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-signed-${{ needs.build.outputs.version }}
+          path: dist
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Hyper-PiliPlus ${{ needs.build.outputs.version }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/*

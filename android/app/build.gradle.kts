@@ -47,12 +47,26 @@ android {
             it.load(properties.inputStream())
     }
 
-    val config = keyProperties.getProperty("storeFile")?.let {
+    val signingStore = System.getenv("ANDROID_SIGNING_STORE_FILE")
+        ?: keyProperties.getProperty("storeFile")
+    if (project.hasProperty("requireReleaseSigning")) {
+        require(!signingStore.isNullOrBlank()) { "Release signing keystore is required" }
+        for ((env, property) in listOf(
+            "KEYSTORE_PASSWORD" to "storePassword",
+            "KEY_ALIAS" to "keyAlias",
+            "KEY_PASSWORD" to "keyPassword",
+        )) {
+            require(!(System.getenv(env) ?: keyProperties.getProperty(property)).isNullOrBlank()) {
+                "Release signing field $property is required"
+            }
+        }
+    }
+    val config = signingStore?.let {
         signingConfigs.create("release") {
             storeFile = file(it)
-            storePassword = keyProperties.getProperty("storePassword")
-            keyAlias = keyProperties.getProperty("keyAlias")
-            keyPassword = keyProperties.getProperty("keyPassword")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: keyProperties.getProperty("storePassword")
+            keyAlias = System.getenv("KEY_ALIAS") ?: keyProperties.getProperty("keyAlias")
+            keyPassword = System.getenv("KEY_PASSWORD") ?: keyProperties.getProperty("keyPassword")
             enableV1Signing = true
             enableV2Signing = true
         }

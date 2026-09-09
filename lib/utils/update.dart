@@ -7,6 +7,7 @@ import 'package:PiliPlus/http/browser_ua.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
+import 'package:PiliPlus/utils/release_version.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -28,16 +29,25 @@ abstract final class Update {
           extra: {'account': const NoAccount()},
         ),
       );
-      if (res.data is Map || res.data.isEmpty) {
+      if (res.data is! Map ||
+          res.data['draft'] == true ||
+          res.data['prerelease'] == true) {
         if (!isAuto) {
           SmartDialog.showToast('检查更新失败，GitHub接口未返回数据，请检查网络');
         }
         return;
       }
-      final data = res.data[0];
-      final int latest =
-          DateTime.parse(data['created_at']).millisecondsSinceEpoch ~/ 1000;
-      if (BuildConfig.buildTime >= latest) {
+      final data = res.data as Map;
+      final latest = ReleaseVersion.parse(data['tag_name']?.toString() ?? '');
+      if (latest == null) {
+        if (!isAuto) SmartDialog.showToast('发布版本号无效，需要 v上游版本.修订号');
+        return;
+      }
+      final current = ReleaseVersion.parse(
+        BuildConfig.versionName,
+        allowLegacy: true,
+      );
+      if (current != null && latest.compareTo(current) <= 0) {
         if (!isAuto) {
           SmartDialog.showToast('已是最新版本');
         }
@@ -112,6 +122,7 @@ abstract final class Update {
       }
     } catch (e) {
       if (kDebugMode) debugPrint('failed to check update: $e');
+      if (!isAuto) SmartDialog.showToast('检查更新失败：仓库尚未发布正式版本，或网络不可用');
     }
   }
 
@@ -129,8 +140,8 @@ abstract final class Update {
               return;
             }
           }
-          throw UnsupportedError('platform not found: $plat');
         }
+        throw UnsupportedError('platform not found: $plat');
       }
 
       if (Platform.isAndroid) {
