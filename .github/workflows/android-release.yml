@@ -98,7 +98,9 @@ jobs:
         run: |
           command -v sdkmanager
           test -n "$ANDROID_HOME"
-          sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-37" "build-tools;36.0.0" "ndk;28.2.13676358"
+          # SDK package identifiers include the minor API version; Gradle still uses compileSdk = 37.
+          sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-37.0" "build-tools;36.0.0" "ndk;28.2.13676358"
+          test -f "$ANDROID_HOME/platforms/android-37.0/android.jar"
       - name: Resolve locked dependencies and apply upstream package patches
         run: |
           ./scripts/flutterw pub get --enforce-lockfile

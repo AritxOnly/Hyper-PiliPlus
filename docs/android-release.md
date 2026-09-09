@@ -48,6 +48,8 @@ Base64 不是加密；不要将编码内容、密码、`key.properties` 或 keys
 为保留本分支功能，使用固定 Flutter 提交和 `tool/flutter-sdk.patch`，再按上游顺序应用 `lib/scripts/material/` 的 Android 包补丁。
 包目录从 `.dart_tool/package_config.json` 读取，不猜测缓存目录。签名构建要求显式启用 `requireReleaseSigning`。
 
+Android SDK 平台的安装标识为 `platforms;android-37.0`（包含 `.0`），不是 `platforms;android-37`；Gradle 的 `compileSdk` / `targetSdk` 仍填写整数 `37`。工作流安装后会检查对应 `android.jar` 是否存在。
+
 首次云构建使用仓库 `pubspec.lock`（`--enforce-lockfile`）。它与旧本机缓存存在已知差异（见 [Flutter 环境说明](flutter-environment.md)），因此本机成功不能代替首次云运行验证；如锁文件/补丁不兼容，流程会停止，不会静默升级依赖或发布。
 
 本机使用已有签名配置构建同规则版本：
