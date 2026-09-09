@@ -24,6 +24,8 @@ on:
         required: true
       KEY_PASSWORD:
         required: true
+      DEEPSEEK_API_KEY:
+        required: false
 
 permissions:
   contents: read
@@ -39,6 +41,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
+      release_notes: ${{ steps.release_notes.outputs.body }}
     env:
       # Match the hosted origin recorded in pubspec.lock.
       PUB_HOSTED_URL: https://pub.flutter-io.cn
@@ -46,6 +49,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          # Release notes compare the new flavor tag with the preceding one.
+          fetch-depth: 0
       - name: Generate flavor version
         id: version
         run: python3 scripts/release_metadata.py --github-output "$GITHUB_OUTPUT"
@@ -181,6 +186,16 @@ jobs:
           name: android-signed-${{ steps.version.outputs.version }}
           path: dist/*
           if-no-files-found: error
+      - name: Generate release notes
+        id: release_notes
+        if: inputs.publish
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: >-
+          python3 scripts/generate_release_notes.py
+          --version "${{ steps.version.outputs.version }}"
+          --sha "$GITHUB_SHA"
+          --github-output "$GITHUB_OUTPUT"
       - name: Remove temporary keystore
         if: always()
         run: |
@@ -205,6 +220,7 @@ jobs:
           tag_name: ${{ needs.build.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: Hyper-PiliPlus ${{ needs.build.outputs.version }}
-          generate_release_notes: true
+          body: ${{ needs.build.outputs.release_notes }}
+          generate_release_notes: false
           fail_on_unmatched_files: true
           files: dist/*

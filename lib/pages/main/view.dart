@@ -443,8 +443,23 @@ class _MainAppState extends PopScopeState<MainApp>
   Widget _nativeMiuixNavigationSync() => Obx(() {
     final selectedIndex = _mainController.selectedIndex.value;
     final visible = _nativeNavigationVisible;
+    final dynCount = _mainController.dynCount.value;
+    final dynamicBadgeMode = _mainController.dynamicBadgeMode;
     final destinations = _mainController.navigationBars
-        .map((item) => <String, String>{'key': item.name, 'label': item.label})
+        .map(
+          (item) => <String, Object?>{
+            'key': item.name,
+            'label': item.label,
+            // Keep the native glass bar in lockstep with Flutter's bottom
+            // navigation badge: an empty label represents the red-dot mode.
+            'badge':
+                item == .dynamics && dynCount > 0 && dynamicBadgeMode != .hidden
+                ? dynamicBadgeMode == .number
+                      ? dynCount.toString()
+                      : ''
+                : null,
+          },
+        )
         .toList(growable: false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -630,7 +645,8 @@ class _MainAppState extends PopScopeState<MainApp>
             () {
               final dynCount = _mainController.dynCount.value;
               return Badge(
-                isLabelVisible: dynCount > 0,
+                isLabelVisible:
+                    dynCount > 0 && _mainController.dynamicBadgeMode != .hidden,
                 label: _mainController.dynamicBadgeMode == .number
                     ? Text(dynCount.toString())
                     : null,

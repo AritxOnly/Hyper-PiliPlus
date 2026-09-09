@@ -259,6 +259,8 @@ private class OverlayViewTreeOwner(
 internal data class NavigationDestination(
     val key: String,
     val label: String,
+    /** Null means no badge; an empty string is a dot-only badge. */
+    val badge: String? = null,
 )
 
 internal data class NavigationUiState(
@@ -283,7 +285,7 @@ internal data class NavigationUiState(
                     val item = raw as? Map<*, *> ?: return@mapNotNull null
                     val key = item["key"] as? String ?: return@mapNotNull null
                     val label = item["label"] as? String ?: return@mapNotNull null
-                    NavigationDestination(key, label)
+                    NavigationDestination(key, label, item["badge"] as? String)
                 }
                 .orEmpty()
             fun color(name: String, fallback: Int) = (args[name] as? Number)?.toInt() ?: fallback

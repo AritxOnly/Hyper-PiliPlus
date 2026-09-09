@@ -123,6 +123,7 @@ internal fun DeadlinerNavigationOverlayContent(
             label = destination.label,
             selectedIcon = rememberVectorPainter(icon),
             unselectedIcon = rememberVectorPainter(icon),
+            badge = destination.badge,
             iconScale = if (destination.key == "home") 0.95f else 1f,
         )
     }

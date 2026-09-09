@@ -694,7 +694,7 @@ Future<void> _showCardWidthDialog(
 }
 
 void _setDynBadge(DynamicBadgeMode value, VoidCallback setState) {
-  final mainController = Get.find<MainController>()..dynamicBadgeMode = value;
+  final mainController = Get.find<MainController>()..setDynamicBadgeMode(value);
   if (value != DynamicBadgeMode.hidden) mainController.getUnreadDynamic();
   GStorage.setting
       .put(SettingBoxKey.dynamicBadgeMode, value.index)

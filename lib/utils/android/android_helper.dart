@@ -27,7 +27,7 @@ abstract final class PiliAndroidHelper {
   }
 
   static Future<void> updateMiuixNavigation({
-    required List<Map<String, String>> destinations,
+    required List<Map<String, Object?>> destinations,
     required int selectedIndex,
     required bool visible,
     required bool dark,

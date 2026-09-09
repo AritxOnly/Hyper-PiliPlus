@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -85,6 +86,8 @@ data class MiuixFloatingTabItem(
     val unselectedIcon: Painter,
     val enabled: Boolean = true,
     val iconScale: Float = 1f,
+    /** Null hides the badge; an empty label draws the red-dot variant. */
+    val badge: String? = null,
 )
 
 enum class MiuixFloatingTabLayout {
@@ -395,30 +398,40 @@ private fun FloatingTabItemContent(
             onClick = onClick,
         )
     val icon: @Composable () -> Unit = {
-        AnimatedContent(
-            modifier = Modifier.graphicsLayer {
-                scaleX = animatedIconScale
-                scaleY = animatedIconScale
-            },
-            targetState = selected,
-            transitionSpec = {
-                (fadeIn() + scaleIn(initialScale = 0.88f))
-                    .togetherWith(fadeOut() + scaleOut(targetScale = 1.06f))
-            },
-            label = "floating_tab_icon",
-        ) { isSelected ->
-            Icon(
-                painter = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                contentDescription = null,
-                tint = animatedContentColor,
-                modifier = Modifier
-                    .size(MiuixFloatingTabBarDefaults.TabIconSize)
-                    .graphicsLayer {
-                        val scale = item.iconScale.coerceIn(0.75f, 1.25f)
-                        scaleX = scale
-                        scaleY = scale
-                    },
-            )
+        Box {
+            AnimatedContent(
+                modifier = Modifier.graphicsLayer {
+                    scaleX = animatedIconScale
+                    scaleY = animatedIconScale
+                },
+                targetState = selected,
+                transitionSpec = {
+                    (fadeIn() + scaleIn(initialScale = 0.88f))
+                        .togetherWith(fadeOut() + scaleOut(targetScale = 1.06f))
+                },
+                label = "floating_tab_icon",
+            ) { isSelected ->
+                Icon(
+                    painter = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                    contentDescription = null,
+                    tint = animatedContentColor,
+                    modifier = Modifier
+                        .size(MiuixFloatingTabBarDefaults.TabIconSize)
+                        .graphicsLayer {
+                            val scale = item.iconScale.coerceIn(0.75f, 1.25f)
+                            scaleX = scale
+                            scaleY = scale
+                        },
+                )
+            }
+            item.badge?.let { label ->
+                FloatingTabBadge(
+                    label = label,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = 4.dp, y = (-3).dp),
+                )
+            }
         }
     }
     val label: @Composable () -> Unit = {
@@ -457,5 +470,42 @@ private fun FloatingTabItemContent(
             icon()
             label()
         }
+    }
+}
+
+@Composable
+private fun FloatingTabBadge(
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val shape = MiuixFloatingTabBarDefaults.IndicatorShape
+    val colors = MaterialTheme.colorScheme
+    if (label.isEmpty()) {
+        Box(
+            modifier = modifier
+                .size(8.dp)
+                .clip(shape)
+                .background(colors.error),
+        )
+        return
+    }
+
+    Box(
+        modifier = modifier
+            .heightIn(min = 15.dp)
+            .widthIn(min = 15.dp)
+            .clip(shape)
+            .background(colors.error)
+            .padding(horizontal = 4.dp, vertical = 1.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = colors.onError,
+            fontSize = 9.sp,
+            lineHeight = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
     }
 }

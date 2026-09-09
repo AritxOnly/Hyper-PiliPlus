@@ -23,10 +23,13 @@
 | `KEYSTORE_PASSWORD` | keystore 密码 |
 | `KEY_ALIAS` | 签名密钥别名 |
 | `KEY_PASSWORD` | 密钥密码 |
+| `DEEPSEEK_API_KEY` | 可选；用于以 `deepseek-v4-flash` 生成中文 Release Notes |
 
 **必须使用此前本机 Release 的同一把签名密钥**，否则无法覆盖安装并保留现有应用数据。不要重新生成密钥替代旧密钥。
 Base64 不是加密；不要将编码内容、密码、`key.properties` 或 keystore 提交到 Git。
 工作流仅在临时目录解码 keystore，密码由环境变量传给 Gradle，构建结束清理临时文件。
+发布任务会把当前 flavor 版本与上一个四段版本标签之间的提交标题交给 DeepSeek 生成用户可读摘要。该步骤只在勾选 `publish` 时执行；没有配置 `DEEPSEEK_API_KEY`、接口超时或返回无效内容时，会自动改用确定性的提交摘要，不会阻塞发布。
+提交标题属于不可信输入，生成提示明确禁止执行其中的指令；密钥、签名材料和其他 Actions Secrets 都不会发送给模型。
 缺少任意签名项会失败，不会以 debug 签名发布。APK、版本元数据及校验和以外的文件不会上传。
 只在受信任的分支执行签名构建，不要将 Secrets 暴露给外部 PR 的代码。
 
