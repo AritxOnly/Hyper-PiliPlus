@@ -113,7 +113,7 @@ class _DynamicDetailPageState
       /// apply `lib/scripts/scrollable.patch`
       isScrolling: () => _scrollable?.shouldIgnorePointer ?? false,
       child: SimpleScaffold(
-        backgroundColor: theme.colorScheme.surfaceContainerLow,
+        backgroundColor: theme.colorScheme.surfaceContainerLowest,
         appBar: _buildAppBar(),
         body: Padding(
           padding: EdgeInsets.only(left: padding.left, right: padding.right),
@@ -130,7 +130,7 @@ class _DynamicDetailPageState
         ? page
         : VideoPageHeroTarget(
             tag: tag,
-            surfaceColor: theme.colorScheme.surfaceContainerLow,
+            surfaceColor: theme.colorScheme.surfaceContainerLowest,
             child: page,
           );
   }
@@ -658,7 +658,7 @@ class _DynamicDetailPageState
       ),
     );
     return SliverFloatingHeaderWidget(
-      backgroundColor: theme.colorScheme.surfaceContainerLow,
+      backgroundColor: theme.colorScheme.surfaceContainerLowest,
       child: child,
     );
   }

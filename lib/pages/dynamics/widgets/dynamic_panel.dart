@@ -67,7 +67,7 @@ class DynamicPanel extends StatelessWidget {
         : null;
     final child = Material(
       color: isDetail
-          ? theme.colorScheme.surfaceContainerLow
+          ? theme.colorScheme.surfaceContainerLowest
           : theme.colorScheme.surfaceContainer,
       borderRadius: isCard ? const .all(.circular(12)) : null,
       clipBehavior: isCard ? Clip.antiAlias : Clip.none,
