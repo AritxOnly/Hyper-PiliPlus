@@ -126,12 +126,14 @@ void main() {
                 onPressed: fullscreen ?? () {},
                 icon: const Icon(Icons.fullscreen),
               ),
-              options: () => [
+              options: (runOutsideOptionsDialog) => [
                 (
                   label: '字幕',
                   control: IconButton(
                     tooltip: '字幕设置',
-                    onPressed: option ?? () {},
+                    onPressed: option == null
+                        ? () {}
+                        : () => runOutsideOptionsDialog(option),
                     icon: const Icon(Icons.subtitles),
                   ),
                 ),
@@ -192,7 +194,7 @@ void main() {
     expect(position, inInclusiveRange(70000, 80000));
   });
 
-  testWidgets('secondary controls remain reachable and panel closes', (
+  testWidgets('page-level option closes its dialog before opening a panel', (
     tester,
   ) async {
     var selected = 0;
@@ -201,9 +203,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('字幕'), findsOneWidget);
     await tester.tap(find.byTooltip('字幕设置'));
-    expect(selected, 1);
-    await tester.tap(find.byTooltip('关闭'));
     await tester.pumpAndSettle();
+    expect(selected, 1);
     expect(find.byType(Dialog), findsNothing);
   });
 }

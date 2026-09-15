@@ -280,22 +280,70 @@ class _VideoCardHState extends State<VideoCardH> {
               overflow: .clip,
             ),
           ),
-          const SizedBox(height: 3),
-          Row(
-            spacing: 8,
-            children: [
-              StatWidget(
-                type: .play,
-                value: videoItem.stat.view,
-              ),
-              StatWidget(
-                type: .danmaku,
-                value: videoItem.stat.danmu,
-              ),
-            ],
-          ),
+          if (videoItem.isLive != true) ...[
+            const SizedBox(height: 3),
+            Row(
+              spacing: 8,
+              children: [
+                StatWidget(
+                  type: .play,
+                  value: videoItem.stat.view,
+                ),
+                StatWidget(
+                  type: .danmaku,
+                  value: videoItem.stat.danmu,
+                ),
+              ],
+            ),
+          ],
         ],
       ),
+    );
+  }
+}
+
+/// Opens a horizontal video card when no shared-element source is available.
+///
+/// Some non-card entry points (for example, search user results) reuse the
+/// horizontal-card navigation behavior but intentionally do not participate in
+/// the Hero transition.
+Future<void> pushVideoH(HorizontalVideoModel videoItem) async {
+  if (videoItem.isPugv ?? false) {
+    PageUtils.viewPugv(seasonId: videoItem.seasonId);
+    return;
+  }
+
+  if (videoItem.isLive ?? false) {
+    if (videoItem.roomId case final roomId?) {
+      PageUtils.toLiveRoom(roomId);
+    }
+    return;
+  }
+
+  if (videoItem.redirectUrl?.isNotEmpty == true &&
+      PageUtils.viewPgcFromUri(videoItem.redirectUrl!)) {
+    return;
+  }
+
+  int? cid = videoItem.cid;
+  Dimension? dimension = videoItem.dimension;
+  if (cid == null) {
+    if (await SearchHttp.ab2cWithDimension(
+          aid: videoItem.aid,
+          bvid: videoItem.bvid,
+        )
+        case final res?) {
+      cid = res.cid;
+      dimension = res.dimension;
+    }
+  }
+  if (cid != null) {
+    PageUtils.toVideoPage(
+      bvid: videoItem.bvid,
+      cid: cid,
+      cover: videoItem.cover,
+      title: videoItem.title,
+      dimension: dimension,
     );
   }
 }

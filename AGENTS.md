@@ -25,9 +25,9 @@
 
 ## Flutter 与依赖环境
 
-详细流程见 [Flutter 环境说明](docs/flutter-environment.md)。当前固定环境为 Flutter **3.47.2** / Dart **3.13.2**，不是未修改的官方 SDK。
+详细流程见 [Flutter 环境说明](docs/flutter-environment.md)。当前固定环境为 Flutter **3.47.4** / Dart **3.13.3**，不是未修改的官方 SDK。
 
-- Flutter 提交：`d3b14c876900e553bc736ca19295fc09e3853e8e`。
+- Flutter 提交：`9584c6713b324636289d067944a46fd6b49df14b`。
 - SDK 补丁：`tool/flutter-sdk.patch`；版本和补丁校验由 `scripts/flutterw` 执行。
 - Flutter 命令统一使用 `./scripts/flutterw`，禁止回退到 PATH 中的全局 Flutter。
 - Dart 命令使用 `.fvm/flutter_sdk/bin/dart`；包装器不支持 `./scripts/flutterw dart ...`。

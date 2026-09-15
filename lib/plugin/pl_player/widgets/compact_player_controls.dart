@@ -31,10 +31,20 @@ class CompactPlayerControls extends StatelessWidget {
   final Widget time;
   final Widget speed;
   final Widget? fullscreenButton;
-  final List<({String label, Widget control})> Function() options;
 
-  void _showOptions(BuildContext context) {
-    showDialog<void>(
+  /// Runs a page-level action only after the options dialog is dismissed.
+  ///
+  /// A chapter or episode sheet belongs to the video page's navigator. Opening
+  /// it while this dialog is still the active modal route leaves the sheet
+  /// underneath the dialog, so its list appears but cannot receive taps.
+  final List<({String label, Widget control})> Function(
+    void Function(VoidCallback action) runOutsideOptionsDialog,
+  )
+  options;
+
+  Future<void> _showOptions(BuildContext context) async {
+    VoidCallback? pendingPageAction;
+    await showDialog<void>(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: const Color(0xff242428),
@@ -71,49 +81,54 @@ class CompactPlayerControls extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 16,
-                children: options()
-                    .map(
-                      (option) => SizedBox(
-                        width: 76,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              height: 44,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: .07),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: DefaultTextStyle.merge(
-                                textAlign: TextAlign.center,
-                                child: SizedBox(
-                                  width: 76,
+                children:
+                    options((action) {
+                          pendingPageAction = action;
+                          Navigator.of(context).pop();
+                        })
+                        .map(
+                          (option) => SizedBox(
+                            width: 76,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
                                   height: 44,
-                                  child: option.control,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: .07),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: DefaultTextStyle.merge(
+                                    textAlign: TextAlign.center,
+                                    child: SizedBox(
+                                      width: 76,
+                                      height: 44,
+                                      child: option.control,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  option.label,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              option.label,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                    .toList(),
+                          ),
+                        )
+                        .toList(),
               ),
             ],
           ),
         ),
       ),
     );
+    pendingPageAction?.call();
   }
 
   @override

@@ -1,9 +1,9 @@
 # 固定 Flutter 构建环境
 
-本项目已验证的 Android 构建环境是 **Flutter 3.47.2 stable / Dart 3.13.2**。
+本项目已验证的 Android 构建环境是 **Flutter 3.47.4 stable / Dart 3.13.3**。
 
-- Flutter 提交：`d3b14c876900e553bc736ca19295fc09e3853e8e`
-- Engine 提交：`a804b261645ef8c13eb3d5c44a5c2fb0340c5539`
+- Flutter 提交：`9584c6713b324636289d067944a46fd6b49df14b`
+- Engine 提交：`06a2e2a110089dff50fe635cffd2a61e1b24fbcd`
 - `.fvmrc` 固定版本。仓库包含 `pubspec.lock`，但它与本机此前构建使用的解析结果存在历史差异，见下文。
 - `tool/flutter-sdk.patch` 保存已用于 Release 的 SDK 完整补丁（35 个文件）。补丁 SHA-256 为 `7b5dc6ad15e1e2d2d6218b050bfccb62ba7abd2e6d0be25d008b39284c9d4299`。
 
@@ -11,7 +11,7 @@
 
 ## 当前电脑
 
-持久 SDK 位于 `/Users/aritxonly/development/hyper-piliplus-flutter-3.47.2`，项目通过被 Git 忽略的 `.fvm/flutter_sdk` 链接访问它。终端全局 Flutter 保持原样，避免影响其他工程。VS Code 使用项目链接；Android Studio 可把 Flutter SDK path 设为项目的 `.fvm/flutter_sdk`。
+持久 SDK 位于项目专用的 `.fvm/flutter_sdk_3.47.4`，项目通过被 Git 忽略的 `.fvm/flutter_sdk` 链接访问它。终端全局 Flutter 保持原样，避免影响其他工程。VS Code 使用项目链接；Android Studio 可把 Flutter SDK path 设为项目的 `.fvm/flutter_sdk`。
 
 项目命令统一从仓库根目录执行：
 
@@ -35,7 +35,7 @@
 
 ## 在其他电脑恢复
 
-1. 安装 Flutter 3.47.2 到本项目独占的持久目录（可用 FVM 安装，但不要修改供其他项目共用的 SDK）。确认 `git rev-parse HEAD` 与上述提交一致，且 `git status --porcelain` 为空。
+1. 安装 Flutter 3.47.4 到本项目独占的持久目录（可用 FVM 安装，但不要修改供其他项目共用的 SDK）。确认 `git rev-parse HEAD` 与上述提交一致，且 `git status --porcelain` 为空。
 2. 在干净 SDK 上应用本仓库的 `tool/flutter-sdk.patch`：
 
    ```sh

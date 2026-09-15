@@ -56,6 +56,7 @@ import 'package:PiliPlus/utils/connectivity_utils.dart';
 import 'package:PiliPlus/utils/duration_utils.dart';
 import 'package:PiliPlus/utils/extension/num_ext.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
+import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/image_utils.dart';
 import 'package:PiliPlus/utils/mobile_observer.dart';
@@ -402,8 +403,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     final double widgetWidth = isLandscape && isFullScreen ? 42 : 35;
 
     Widget progressWidget(
-      BottomControlType bottomControl,
-    ) => switch (bottomControl) {
+      BottomControlType bottomControl, {
+      void Function(VoidCallback action)? runOutsideOptionsDialog,
+    }) => switch (bottomControl) {
       /// 播放暂停
       BottomControlType.playOrPause => PlayOrPauseButton(
         plPlayerController: plPlayerController,
@@ -543,7 +545,15 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   color: Colors.white,
                 ),
               ),
-              onTap: widget.showViewPoints,
+              onTap: () {
+                final showViewPoints = widget.showViewPoints;
+                if (showViewPoints == null) return;
+                if (runOutsideOptionsDialog case final runOutsideDialog?) {
+                  runOutsideDialog(showViewPoints);
+                } else {
+                  showViewPoints();
+                }
+              },
               onLongPress: () {
                 Feedback.forLongPress(context);
                 videoDetailController.showVP.toggle();
@@ -568,47 +578,55 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           color: Colors.white,
         ),
         onTap: () {
-          if (videoDetailController.isFileSource) {
-            // TODO
-            return;
-          }
-          // part -> playAll -> season(pgc)
-          if (isPlayAll && !isPart) {
-            widget.showEpisodes?.call();
-            return;
-          }
-          int? index;
-          int currentCid = plPlayerController.cid!;
-          String bvid = plPlayerController.bvid;
-          List<ugc.BaseEpisodeItem> episodes = [];
-          if (isSeason) {
-            final sections = videoDetail.ugcSeason!.sections!;
-            for (int i = 0; i < sections.length; i++) {
-              final episodesList = sections[i].episodes!;
-              for (final item in episodesList) {
-                if (item.cid == currentCid) {
-                  index = i;
-                  episodes = episodesList;
-                  break;
+          void showEpisodes() {
+            if (videoDetailController.isFileSource) {
+              // TODO
+              return;
+            }
+            // part -> playAll -> season(pgc)
+            if (isPlayAll && !isPart) {
+              widget.showEpisodes?.call();
+              return;
+            }
+            int? index;
+            int currentCid = plPlayerController.cid!;
+            String bvid = plPlayerController.bvid;
+            List<ugc.BaseEpisodeItem> episodes = [];
+            if (isSeason) {
+              final sections = videoDetail.ugcSeason!.sections!;
+              for (int i = 0; i < sections.length; i++) {
+                final episodesList = sections[i].episodes!;
+                for (final item in episodesList) {
+                  if (item.cid == currentCid) {
+                    index = i;
+                    episodes = episodesList;
+                    break;
+                  }
                 }
               }
+            } else if (isPart) {
+              episodes = videoDetail.pages!;
+            } else if (isPgc) {
+              episodes =
+                  (introController as PgcIntroController).pgcItem.episodes!;
             }
-          } else if (isPart) {
-            episodes = videoDetail.pages!;
-          } else if (isPgc) {
-            episodes =
-                (introController as PgcIntroController).pgcItem.episodes!;
+            widget.showEpisodes?.call(
+              index,
+              isSeason ? videoDetail.ugcSeason! : null,
+              isSeason ? null : episodes,
+              bvid,
+              IdUtils.bv2av(bvid),
+              isSeason && isPart
+                  ? videoDetailController.seasonCid ?? currentCid
+                  : currentCid,
+            );
           }
-          widget.showEpisodes?.call(
-            index,
-            isSeason ? videoDetail.ugcSeason! : null,
-            isSeason ? null : episodes,
-            bvid,
-            IdUtils.bv2av(bvid),
-            isSeason && isPart
-                ? videoDetailController.seasonCid ?? currentCid
-                : currentCid,
-          );
+
+          if (runOutsideOptionsDialog case final runOutsideDialog?) {
+            runOutsideDialog(showEpisodes);
+          } else {
+            showEpisodes();
+          }
         },
       ),
 
@@ -949,9 +967,17 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       fullscreenButton: plPlayerController.isDesktopPip
           ? null
           : progressWidget(.fullscreen),
-      options: () => options
+      options: (runOutsideOptionsDialog) => options
           .where(available)
-          .map((type) => (label: label(type), control: progressWidget(type)))
+          .map(
+            (type) => (
+              label: label(type),
+              control: progressWidget(
+                type,
+                runOutsideOptionsDialog: runOutsideOptionsDialog,
+              ),
+            ),
+          )
           .toList(),
     );
   }
@@ -1013,9 +1039,10 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   }
 
   void _onHorizontalDragEnd() {
-    plPlayerController.onSeekEnd();
     if (plPlayerController.seekToPos case final seekToPos?) {
+      feedBack();
       plPlayerController
+        ..position.value = seekToPos.inSeconds
         ..seekTo(seekToPos, isSeek: false)
         ..seekToPos = null;
     } else {
@@ -1023,6 +1050,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           plPlayerController.videoPlayerController?.state.position.inSeconds ??
           0;
     }
+    plPlayerController.onSeekEnd();
   }
 
   void _onPanUpdate(ScaleUpdateDetails details) {
@@ -1262,21 +1290,17 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     return true;
   }
 
+  /// 鼠标中键/右键全屏切换的挂起项：(进入全屏, 应用内全屏)。
+  /// 在鼠标按下时启动原生全屏过渡会与本次点击重叠，窗口可能卡在半过渡状态
+  /// 导致鼠标事件失效，因此延后到抬起后执行。
+  (bool, bool)? _pendingFullScreenToggle;
+
   void _onPointerDown(PointerDownEvent event) {
     if (PlatformUtils.isDesktop) {
       final buttons = event.buttons;
       final isSecondaryBtn = buttons == kSecondaryMouseButton;
       if (isSecondaryBtn || buttons == kMiddleMouseButton) {
-        final isFullScreen = this.isFullScreen;
-        if (isFullScreen && plPlayerController.controlsLock.value) {
-          plPlayerController
-            ..controlsLock.value = false
-            ..showControls.value = false;
-        }
-        plPlayerController.triggerFullScreen(
-          status: !isFullScreen,
-          inAppFullScreen: isSecondaryBtn,
-        );
+        _pendingFullScreenToggle = (!isFullScreen, isSecondaryBtn);
         return;
       }
     }
@@ -1303,6 +1327,27 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       }
       _scaleGestureRecognizer.addPointer(event);
     }
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    final pending = _pendingFullScreenToggle;
+    if (pending == null || event.buttons != 0) {
+      return;
+    }
+    _pendingFullScreenToggle = null;
+    if (isFullScreen && plPlayerController.controlsLock.value) {
+      plPlayerController
+        ..controlsLock.value = false
+        ..showControls.value = false;
+    }
+    plPlayerController.triggerFullScreen(
+      status: pending.$1,
+      inAppFullScreen: pending.$2,
+    );
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _pendingFullScreenToggle = null;
   }
 
   void _onPointerPanZoomUpdate(PointerPanZoomUpdateEvent event) {
@@ -2048,6 +2093,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           onPointerPanZoomUpdate: _onPointerPanZoomUpdate,
           onPointerPanZoomEnd: _onPointerPanZoomEnd,
           onPointerDown: _onPointerDown,
+          onPointerUp: _onPointerUp,
+          onPointerCancel: _onPointerCancel,
           onPanStart: _onPanStart,
           onPanUpdate: _onPanUpdate,
           onPanEnd: _onPanEnd,
