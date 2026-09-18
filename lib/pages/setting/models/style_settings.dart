@@ -126,6 +126,22 @@ List<SettingsModel> get styleSettings => [
     defaultVal: true,
     needReboot: true,
   ),
+  NormalModel(
+    title: '悬浮底栏底部高度',
+    getSubtitle: () => Pref.followMyHyperModifierNavigationLift
+        ? '跟随 HyperModifier 全局抬高'
+        : '当前：${Pref.floatingNavBottomLift.toStringAsFixed(0)} dp',
+    leading: const Icon(Icons.vertical_align_top_rounded),
+    onTap: _showFloatingNavigationLiftDialog,
+  ),
+  const SwitchModel(
+    title: '跟随 HyperModifier 全局抬高',
+    subtitle: '读取 HyperGlassify 全局值并覆盖本地底部高度',
+    leading: Icon(Icons.sync_rounded),
+    setKey: SettingBoxKey.followMyHyperModifierNavigationLift,
+    defaultVal: false,
+    needReboot: true,
+  ),
   const SwitchModel(
     title: '底栏背板调试面板',
     subtitle: '显示 PixelCopy 原图、坐标、帧数和采样耗时',
@@ -402,6 +418,29 @@ List<SettingsModel> get styleSettings => [
       leading: const Icon(Icons.autofps_select_outlined),
     ),
 ];
+
+void _showFloatingNavigationLiftDialog(
+  BuildContext context,
+  VoidCallback setState,
+) {
+  showDialog<double>(
+    context: context,
+    builder: (context) => SliderDialog(
+      value: Pref.floatingNavBottomLift,
+      title: const Text('悬浮底栏底部高度'),
+      min: 0,
+      max: 48,
+      divisions: 48,
+      suffix: ' dp',
+      precise: 0,
+    ),
+  ).then((value) {
+    if (value == null) return;
+    GStorage.setting.put(SettingBoxKey.floatingNavBottomLift, value);
+    setState();
+    SmartDialog.showToast('设置成功');
+  });
+}
 
 void _showQualityDialog({
   required BuildContext context,

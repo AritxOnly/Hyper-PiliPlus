@@ -143,7 +143,12 @@ internal fun DeadlinerNavigationOverlayContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
-                            .padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 4.dp),
+                            .padding(
+                                start = 16.dp,
+                                top = 24.dp,
+                                end = 16.dp,
+                                bottom = 4.dp + state.bottomLiftDp.dp,
+                            ),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         if (state.backdropDebug) {

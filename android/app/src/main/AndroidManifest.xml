@@ -2,6 +2,7 @@
     package="com.aritxonly.hyperpiliplus">
 
     <queries>
+        <provider android:authorities="com.aritxonly.myhypermodifier.settings" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.BROWSABLE" />

@@ -17,8 +17,9 @@ abstract final class PiliAndroidHelper {
   );
   static void Function(int index)? _onMiuixDestinationSelected;
   static final _backdropFrames = BackdropFrameNotifier(
-    onFrameReady: () =>
-        _miuixNavigationChannel.invokeMethod<void>('flutterFrameRendered'),
+    onFrameReady:
+        () =>
+            _miuixNavigationChannel.invokeMethod<void>('flutterFrameRendered'),
   );
 
   static void setMiuixDestinationHandler(void Function(int index)? handler) {
@@ -43,6 +44,8 @@ abstract final class PiliAndroidHelper {
     required int outline,
     required bool backdropSampling,
     required bool backdropDebug,
+    required double bottomLiftDp,
+    required bool followMyHyperModifierNavigationLift,
   }) {
     // Queue native visibility first; enabling the notifier immediately requests
     // a fresh sample, even if the surface is already idle.
@@ -59,6 +62,9 @@ abstract final class PiliAndroidHelper {
       'outline': outline,
       'backdropSampling': backdropSampling,
       'backdropDebug': backdropDebug,
+      'bottomLiftDp': bottomLiftDp,
+      'followMyHyperModifierNavigationLift':
+          followMyHyperModifierNavigationLift,
     });
     _backdropFrames.configure(visible: visible && backdropSampling);
     return update;
@@ -107,9 +113,8 @@ abstract final class PiliAndroidHelper {
     final jCommentText = commentText.toJString();
     final jSourceId = sourceId.toJString();
     final jCookie = cookie.toJString();
-    final jPictures = pictures.isEmpty
-        ? null
-        : jsonEncode(pictures).toJString();
+    final jPictures =
+        pictures.isEmpty ? null : jsonEncode(pictures).toJString();
 
     try {
       AndroidHelper.biliSendCommAntifraud(

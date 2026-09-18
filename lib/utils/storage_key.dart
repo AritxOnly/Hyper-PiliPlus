@@ -152,6 +152,9 @@ abstract final class SettingBoxKey {
       showDynDispute = 'showDynDispute',
       touchSlopH = 'touchSlopH',
       floatingNavBar = 'floatingNavBar',
+      floatingNavBottomLift = 'floatingNavBottomLift',
+      followMyHyperModifierNavigationLift =
+          'followMyHyperModifierNavigationLift',
       miuixBackdropSampling = 'miuixBackdropSampling',
       removeSafeArea = 'removeSafeArea',
       angleDegrees = 'angleDegrees',

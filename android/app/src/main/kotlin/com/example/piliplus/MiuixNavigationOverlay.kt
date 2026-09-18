@@ -1,6 +1,7 @@
 package com.aritxonly.hyperpiliplus
 
 import android.app.Activity
+import android.net.Uri
 import android.graphics.Color as AndroidColor
 import android.view.Gravity
 import android.view.MotionEvent
@@ -64,11 +65,14 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.renderer.FlutterUiDisplayListener
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.Executors
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.darkColorScheme
 import top.yukonga.miuix.kmp.theme.lightColorScheme
 
 private const val MIUIX_NAVIGATION_CHANNEL = "com.aritxonly.hyperpiliplus/miuix_navigation"
+private val MY_HYPER_MODIFIER_SETTINGS_URI =
+    Uri.parse("content://com.aritxonly.myhypermodifier.settings")
 
 /**
  * A thin native shell around Flutter's main destinations.  Flutter remains
@@ -84,6 +88,8 @@ internal class MiuixNavigationOverlay(
     private var backdropDebugState by mutableStateOf(FlutterBackdropDebugState())
     private var backdropSamplingPaused = false
     private var overlayOccluded = false
+    private var sharedNavigationLiftDp by mutableStateOf(0f)
+    private var globalLiftLoadInFlight = false
     private var composeView: ComposeView? = null
     private var viewTreeOwner: OverlayViewTreeOwner? = null
     private val flutterRenderer = flutterEngine.renderer
@@ -111,6 +117,9 @@ internal class MiuixNavigationOverlay(
             when (call.method) {
                 "update" -> {
                     uiState = NavigationUiState.from(call.arguments as? Map<*, *>)
+                    if (uiState.followMyHyperModifierNavigationLift) {
+                        refreshSharedNavigationLift()
+                    }
                     backdropSampler.setDebugEnabled(uiState.backdropDebug)
                     updateBackdropSampling()
                     result.success(null)
@@ -155,7 +164,13 @@ internal class MiuixNavigationOverlay(
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setContent {
                 DeadlinerNavigationOverlayContent(
-                    state = uiState,
+                    state = uiState.copy(
+                        bottomLiftDp = if (uiState.followMyHyperModifierNavigationLift) {
+                            sharedNavigationLiftDp
+                        } else {
+                            uiState.bottomLiftDp
+                        },
+                    ),
                     backdropSnapshot = backdropSnapshot,
                     backdropDebugState = backdropDebugState,
                     onBackdropBoundsChanged = backdropSampler::setNavigationBounds,
@@ -201,6 +216,31 @@ internal class MiuixNavigationOverlay(
 
     private fun selectDestination(index: Int) {
         channel.invokeMethod("selectDestination", index)
+    }
+
+    private fun refreshSharedNavigationLift() {
+        if (globalLiftLoadInFlight) return
+        globalLiftLoadInFlight = true
+        settingsExecutor.execute {
+            val lift = runCatching {
+                activity.contentResolver.call(
+                    MY_HYPER_MODIFIER_SETTINGS_URI,
+                    "get_settings",
+                    null,
+                    null,
+                )?.getFloat("hyper_glassify_hidden_navigation_lift", 0f) ?: 0f
+            }.getOrDefault(0f).coerceIn(0f, 48f)
+            activity.runOnUiThread {
+                sharedNavigationLiftDp = lift
+                globalLiftLoadInFlight = false
+            }
+        }
+    }
+
+    private companion object {
+        val settingsExecutor = Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "HyperPiliPlus-settings").apply { isDaemon = true }
+        }
     }
 }
 
@@ -269,6 +309,8 @@ internal data class NavigationUiState(
     val visible: Boolean = false,
     val backdropSampling: Boolean = false,
     val backdropDebug: Boolean = false,
+    val bottomLiftDp: Float = 0f,
+    val followMyHyperModifierNavigationLift: Boolean = false,
     val dark: Boolean = false,
     val primary: Int = AndroidColor.rgb(52, 130, 255),
     val background: Int = AndroidColor.rgb(243, 243, 243),
@@ -296,6 +338,10 @@ internal data class NavigationUiState(
                 visible = (args["visible"] as? Boolean == true) && destinations.size > 1,
                 backdropSampling = args["backdropSampling"] as? Boolean ?: false,
                 backdropDebug = args["backdropDebug"] as? Boolean ?: false,
+                bottomLiftDp = ((args["bottomLiftDp"] as? Number)?.toFloat() ?: 0f)
+                    .coerceIn(0f, 48f),
+                followMyHyperModifierNavigationLift =
+                    args["followMyHyperModifierNavigationLift"] as? Boolean ?: false,
                 dark = args["dark"] as? Boolean ?: false,
                 primary = color("primary", AndroidColor.rgb(52, 130, 255)),
                 background = color("background", AndroidColor.rgb(243, 243, 243)),

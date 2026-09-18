@@ -22,6 +22,7 @@ import 'package:PiliPlus/utils/mobile_observer.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -480,6 +481,9 @@ class _MainAppState extends PopScopeState<MainApp>
         // refresh/image updates, without adding a Flutter overlay.
         backdropSampling: true,
         backdropDebug: _mainController.miuixBackdropSampling,
+        bottomLiftDp: Pref.floatingNavBottomLift,
+        followMyHyperModifierNavigationLift:
+            Pref.followMyHyperModifierNavigationLift,
       );
     });
     return const SizedBox.shrink();

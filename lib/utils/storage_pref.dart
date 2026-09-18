@@ -1031,6 +1031,18 @@ abstract final class Pref {
   static bool get floatingNavBar =>
       _setting.get(SettingBoxKey.floatingNavBar, defaultValue: true);
 
+  static double get floatingNavBottomLift => (_setting.get(
+        SettingBoxKey.floatingNavBottomLift,
+        defaultValue: 0.0,
+      ) as num)
+      .toDouble()
+      .clamp(0.0, 48.0);
+
+  static bool get followMyHyperModifierNavigationLift => _setting.get(
+    SettingBoxKey.followMyHyperModifierNavigationLift,
+    defaultValue: false,
+  );
+
   static bool get miuixBackdropSampling =>
       _setting.get(SettingBoxKey.miuixBackdropSampling, defaultValue: false);
 
