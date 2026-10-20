@@ -90,7 +90,7 @@ class MineController extends CommonDataController<Object, Object>
   }
 
   late final Set<MineTabType> mineTabs;
-  bool get hasConfiguredTabs =>
+  late final bool hasConfiguredTabs =
       GStorage.setting.get(SettingBoxKey.mineTabs) != null;
   FavCtr? favCtr;
   HistoryCtr? historyCtr;
@@ -359,10 +359,10 @@ class MineController extends CommonDataController<Object, Object>
     if (isManual) {
       queryUserInfo();
     }
-    queryData();
-    return Future.wait(
-      tabCtr().map((ctr) => ctr.onRefresh(isManual: isManual)),
-    );
+    return Future.wait([
+      if (!hasConfiguredTabs) queryData(),
+      ...tabCtr().map((ctr) => ctr.onRefresh(isManual: isManual)),
+    ]);
   }
 
   @override
@@ -382,7 +382,7 @@ class MineController extends CommonDataController<Object, Object>
   @override
   void onClose() {
     for (final ctr in tabCtr()) {
-      ctr.onClose();
+      ctr.onDelete();
     }
     super.onClose();
   }
