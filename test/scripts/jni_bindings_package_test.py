@@ -20,6 +20,16 @@ class JniBindingsPackageTest(unittest.TestCase):
         )
         self.assertNotIn('com/example/piliplus', bindings)
 
+    def test_native_sources_do_not_import_the_original_app_package(self):
+        source_root = ROOT / 'android/app/src/main'
+        for pattern in ('*.java', '*.kt'):
+            for source in source_root.rglob(pattern):
+                with self.subTest(source=source.relative_to(ROOT)):
+                    self.assertNotRegex(
+                        source.read_text(),
+                        r'(?m)^import\s+(?:static\s+)?com\.example\.piliplus\.',
+                    )
+
 
 if __name__ == '__main__':
     unittest.main()
