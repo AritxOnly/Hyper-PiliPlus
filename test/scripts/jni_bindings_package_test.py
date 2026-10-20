@@ -30,6 +30,15 @@ class JniBindingsPackageTest(unittest.TestCase):
                         r'(?m)^import\s+(?:static\s+)?com\.example\.piliplus\.',
                     )
 
+    def test_release_shrinker_preserves_the_jni_classes(self):
+        rules = (ROOT / 'android/app/proguard-rules.pro').read_text()
+        for name in ('AndroidHelper', 'AndroidHelper$ToDart'):
+            self.assertIn(
+                f'-keep class com.aritxonly.hyperpiliplus.{name} {{ public *; }}',
+                rules,
+            )
+        self.assertNotIn('com.example.piliplus', rules)
+
 
 if __name__ == '__main__':
     unittest.main()
