@@ -44,7 +44,7 @@ jobs:
       release_notes: ${{ steps.release_notes.outputs.body }}
     env:
       # Match the hosted origin recorded in pubspec.lock.
-      PUB_HOSTED_URL: https://pub.flutter-io.cn
+      PUB_HOSTED_URL: https://pub.dev
     steps:
       - uses: actions/checkout@v7
         with:
