@@ -153,7 +153,9 @@ abstract final class SettingBoxKey {
       enableImgMenu = 'enableImgMenu',
       showDynDispute = 'showDynDispute',
       touchSlopH = 'touchSlopH',
+      appIconStyle = 'appIconStyle',
       floatingNavBar = 'floatingNavBar',
+      glassBlurRadius = 'glassBlurRadius',
       floatingNavBottomLift = 'floatingNavBottomLift',
       followMyHyperModifierNavigationLift =
           'followMyHyperModifierNavigationLift',

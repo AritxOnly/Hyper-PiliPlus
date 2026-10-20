@@ -117,6 +117,7 @@ internal class MiuixNavigationOverlay(
             when (call.method) {
                 "update" -> {
                     uiState = NavigationUiState.from(call.arguments as? Map<*, *>)
+                    backdropSampler.setMaterialBlurRadius(uiState.glassBlurRadius)
                     if (uiState.followMyHyperModifierNavigationLift) {
                         refreshSharedNavigationLift()
                     }
@@ -310,6 +311,7 @@ internal data class NavigationUiState(
     val backdropSampling: Boolean = false,
     val backdropDebug: Boolean = false,
     val bottomLiftDp: Float = 0f,
+    val glassBlurRadius: Float = com.aritxonly.deadliner.model.AdvancedMaterialTuning.DefaultBlurRadius,
     val followMyHyperModifierNavigationLift: Boolean = false,
     val dark: Boolean = false,
     val primary: Int = AndroidColor.rgb(52, 130, 255),
@@ -340,6 +342,10 @@ internal data class NavigationUiState(
                 backdropDebug = args["backdropDebug"] as? Boolean ?: false,
                 bottomLiftDp = ((args["bottomLiftDp"] as? Number)?.toFloat() ?: 0f)
                     .coerceIn(0f, 48f),
+                glassBlurRadius = com.aritxonly.deadliner.model.AdvancedMaterialTuning.normalizeBlurRadius(
+                    (args["glassBlurRadius"] as? Number)?.toFloat()
+                        ?: com.aritxonly.deadliner.model.AdvancedMaterialTuning.DefaultBlurRadius,
+                ),
                 followMyHyperModifierNavigationLift =
                     args["followMyHyperModifierNavigationLift"] as? Boolean ?: false,
                 dark = args["dark"] as? Boolean ?: false,

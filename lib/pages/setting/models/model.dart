@@ -12,6 +12,7 @@ import 'package:material_ui/material_ui.dart' hide PopupMenuItemSelected;
 
 @immutable
 sealed class SettingsModel {
+  final bool featured;
   final String? subtitle;
   final Widget? leading;
   final EdgeInsetsGeometry? contentPadding;
@@ -23,6 +24,7 @@ sealed class SettingsModel {
   String? get effectiveSubtitle;
 
   const SettingsModel({
+    this.featured = false,
     this.subtitle,
     this.leading,
     this.contentPadding,
@@ -69,6 +71,7 @@ class SplitModel extends SettingsModel {
 
 class PopupModel<T extends EnumWithLabel> extends SettingsModel {
   const PopupModel({
+    super.featured,
     required this.title,
     super.leading,
     super.contentPadding,
@@ -114,6 +117,7 @@ class NormalModel extends SettingsModel {
   final void Function(BuildContext context, VoidCallback setState)? onTap;
 
   const NormalModel({
+    super.featured,
     super.subtitle,
     super.leading,
     super.contentPadding,
@@ -166,6 +170,7 @@ class SwitchModel extends SettingsModel {
   final void Function(BuildContext context)? onTap;
 
   const SwitchModel({
+    super.featured,
     super.subtitle,
     super.leading,
     super.contentPadding,

@@ -29,6 +29,8 @@ import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/pages/setting/models/model.dart';
 import 'package:PiliPlus/pages/setting/slide_color_picker.dart';
 import 'package:PiliPlus/pages/setting/widgets/dual_slider_dialog.dart';
+import 'package:PiliPlus/pages/setting/widgets/app_icon_dialog.dart';
+import 'package:PiliPlus/pages/setting/widgets/glass_material_slider_dialog.dart';
 import 'package:PiliPlus/pages/setting/widgets/multi_select_dialog.dart';
 import 'package:PiliPlus/pages/setting/widgets/ordered_multi_select_dialog.dart';
 import 'package:PiliPlus/pages/setting/widgets/select_dialog.dart';
@@ -70,6 +72,24 @@ List<SettingsModel> get styleSettings => [
     ),
   ],
   if (Platform.isLinux) _useSSDModel(),
+  if (Platform.isAndroid)
+    NormalModel(
+      title: '应用图标',
+      featured: true,
+      leading: const Icon(Icons.apps_rounded),
+      getSubtitle: () => '当前：${Pref.appIconStyle.label}',
+      onTap: (context, setState) async {
+        final applied = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const AppIconDialog(),
+        );
+        if (applied == true && context.mounted) {
+          setState();
+          SmartDialog.showToast('图标已切换，桌面可能稍后刷新');
+        }
+      },
+    ),
   SwitchModel(
     title: '横屏适配',
     subtitle: '启用横屏布局与逻辑，平板、折叠屏等可开启；建议全屏方向设为【不改变当前方向】',
@@ -88,6 +108,7 @@ List<SettingsModel> get styleSettings => [
   ),
   NormalModel(
     title: 'App字体设置',
+    featured: true,
     subtitle: '点击设置',
     leading: const Icon(Icons.text_fields),
     onTap: (context, setState) => Get.toNamed('/fontSetting'),
@@ -128,13 +149,22 @@ List<SettingsModel> get styleSettings => [
   ),
   const SwitchModel(
     title: '柔光玻璃底栏',
+    featured: true,
     leading: Icon(MdiIcons.soundbar),
     setKey: SettingBoxKey.floatingNavBar,
     defaultVal: true,
     needReboot: true,
   ),
   NormalModel(
+    featured: true,
+    title: '柔光玻璃通透程度',
+    getSubtitle: () => '模糊大小：${Pref.glassBlurRadius.round()}（默认 84）',
+    leading: const Icon(Icons.blur_on_rounded),
+    onTap: _showGlassMaterialDialog,
+  ),
+  NormalModel(
     title: '悬浮底栏底部高度',
+    featured: true,
     getSubtitle: () => Pref.followMyHyperModifierNavigationLift
         ? '跟随 HyperModifier 全局抬高'
         : '当前：${Pref.floatingNavBottomLift.toStringAsFixed(0)} dp',
@@ -143,6 +173,7 @@ List<SettingsModel> get styleSettings => [
   ),
   const SwitchModel(
     title: '跟随 HyperModifier 全局抬高',
+    featured: true,
     subtitle: '读取 HyperGlassify 全局值并覆盖本地底部高度',
     leading: Icon(Icons.sync_rounded),
     setKey: SettingBoxKey.followMyHyperModifierNavigationLift,
@@ -151,6 +182,7 @@ List<SettingsModel> get styleSettings => [
   ),
   const SwitchModel(
     title: '底栏背板调试面板',
+    featured: true,
     subtitle: '显示 PixelCopy 原图、坐标、帧数和采样耗时',
     leading: Icon(Icons.bug_report_outlined),
     setKey: SettingBoxKey.miuixBackdropSampling,
@@ -376,6 +408,7 @@ List<SettingsModel> get styleSettings => [
     onTap: (context, setState) => Get.toNamed('/colorSetting'),
     leading: const Icon(Icons.color_lens_outlined),
     title: '应用主题',
+    featured: true,
     getSubtitle: () => '当前主题：${colorThemeTypes[Pref.customColor].label}',
     getTrailing: (theme) => SizedBox.square(
       dimension: 20,
@@ -408,6 +441,7 @@ List<SettingsModel> get styleSettings => [
   ),
   PopupModel(
     title: '我的页展开内容',
+    featured: true,
     leading: const Icon(Icons.account_box_outlined),
     value: () => Pref.mineExpandContent,
     items: MineExpandContent.values,
@@ -465,6 +499,19 @@ List<SettingsModel> get styleSettings => [
       leading: const Icon(Icons.autofps_select_outlined),
     ),
 ];
+
+Future<void> _showGlassMaterialDialog(
+  BuildContext context,
+  VoidCallback setState,
+) async {
+  final value = await showDialog<double>(
+    context: context,
+    builder: (_) => GlassMaterialSliderDialog(value: Pref.glassBlurRadius),
+  );
+  if (value == null) return;
+  await GStorage.setting.put(SettingBoxKey.glassBlurRadius, value);
+  if (context.mounted) setState();
+}
 
 void _showFloatingNavigationLiftDialog(
   BuildContext context,

@@ -45,6 +45,11 @@ class _SettingPageState extends State<SettingPage> {
 
   static const List<_SettingsModel> _items = [
     _SettingsModel(
+      type: .featureSetting,
+      subtitle: '柔光玻璃、图标配色、主题、转场与原生交互',
+      icon: Icon(Icons.auto_awesome_outlined),
+    ),
+    _SettingsModel(
       type: .privacySetting,
       subtitle: '黑名单',
       icon: Icon(Icons.privacy_tip_outlined),

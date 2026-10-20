@@ -48,7 +48,8 @@ import com.aritxonly.deadliner.ui.base.FloatingNavigationEdgeMask
 import com.aritxonly.deadliner.ui.navigation.MiuixFloatingTabBarDefaults
 import com.aritxonly.deadliner.ui.navigation.MiuixFloatingTabItem
 import com.aritxonly.deadliner.ui.navigation.MiuixFloatingTabLayout
-import com.aritxonly.deadliner.ui.theme.AdvancedMaterialSpec
+import com.aritxonly.deadliner.ui.theme.createAdvancedMaterialSpec
+import com.aritxonly.deadliner.model.AdvancedMaterialFineTuning
 import com.aritxonly.deadliner.ui.theme.LocalAdvancedMaterialSpec
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ContactsCircle
@@ -133,7 +134,11 @@ internal fun DeadlinerNavigationOverlayContent(
     MaterialTheme(colorScheme = materialColors) {
         MiuixTheme(colors = miuixColors) {
             CompositionLocalProvider(
-                LocalAdvancedMaterialSpec provides AdvancedMaterialSpec(enabled = true),
+                LocalAdvancedMaterialSpec provides createAdvancedMaterialSpec(
+                    enabled = true,
+                    blurRadius = state.glassBlurRadius,
+                    fineTuning = AdvancedMaterialFineTuning.Default,
+                ),
             ) {
                 AnimatedVisibility(
                     visible = state.visible,

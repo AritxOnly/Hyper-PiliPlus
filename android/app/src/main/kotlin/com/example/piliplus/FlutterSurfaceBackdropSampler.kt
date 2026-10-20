@@ -11,6 +11,9 @@ import android.view.PixelCopy
 import android.view.SurfaceView
 import android.view.View
 import android.view.ViewGroup
+import com.aritxonly.deadliner.model.AdvancedMaterialTuning
+import com.aritxonly.deadliner.ui.material.glass.DeadlinerGlassRecipes
+import com.aritxonly.deadliner.ui.material.glass.glassEffectPadding
 import io.flutter.embedding.android.FlutterSurfaceView
 import kotlin.math.ceil
 import kotlin.math.max
@@ -63,6 +66,7 @@ internal class FlutterSurfaceBackdropSampler(
 ) {
     private val handler = Handler(Looper.getMainLooper())
     private var enabled = false
+    private var materialBlurRadius = AdvancedMaterialTuning.DefaultBlurRadius
     private var debugEnabled = false
     private var navigationBounds: FlutterBackdropBounds? = null
     private var captureScheduled = false
@@ -155,6 +159,13 @@ internal class FlutterSurfaceBackdropSampler(
      * this wake-up does not start an idle capture loop.
      */
     fun onFlutterFrameRendered() {
+        scheduleCapture(preemptDelayed = true)
+    }
+
+    fun setMaterialBlurRadius(value: Float) {
+        val normalized = AdvancedMaterialTuning.normalizeBlurRadius(value)
+        if (materialBlurRadius == normalized) return
+        materialBlurRadius = normalized
         scheduleCapture(preemptDelayed = true)
     }
 
@@ -276,7 +287,18 @@ internal class FlutterSurfaceBackdropSampler(
 
         val sourceLocation = IntArray(2)
         source.getLocationInWindow(sourceLocation)
-        val bleedPx = ceil(source.resources.displayMetrics.density * SAMPLE_BLEED_DP).toInt()
+        val density = source.resources.displayMetrics.density
+        val recipe = DeadlinerGlassRecipes.FloatingNavigation
+        val radius = min(materialBlurRadius * recipe.blur.radiusMultiplier, recipe.blur.maxRadius)
+        val bleedPx = ceil(max(
+            density * SAMPLE_BLEED_DP,
+            glassEffectPadding(
+                radius, radius,
+                recipe.layering.postRefractionBlurRadius.value * density,
+                recipe.refraction.amount.value * density,
+                recipe.refraction.chromaticAberration.value * density,
+            ),
+        )).toInt()
         val sourceRect = Rect(
             bounds.left - sourceLocation[0] - bleedPx,
             bounds.top - sourceLocation[1] - bleedPx,

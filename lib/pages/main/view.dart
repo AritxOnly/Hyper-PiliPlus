@@ -312,6 +312,7 @@ class _MainAppState extends PopScopeState<MainApp>
         backdropSampling: true,
         backdropDebug: _mainController.miuixBackdropSampling,
         bottomLiftDp: Pref.floatingNavBottomLift,
+        glassBlurRadius: Pref.glassBlurRadius,
         followMyHyperModifierNavigationLift:
             Pref.followMyHyperModifierNavigationLift,
       );

@@ -43,6 +43,7 @@ abstract final class PiliAndroidHelper {
     required bool backdropSampling,
     required bool backdropDebug,
     required double bottomLiftDp,
+    required double glassBlurRadius,
     required bool followMyHyperModifierNavigationLift,
   }) {
     // Queue native visibility first; enabling the notifier immediately requests
@@ -61,6 +62,7 @@ abstract final class PiliAndroidHelper {
       'backdropSampling': backdropSampling,
       'backdropDebug': backdropDebug,
       'bottomLiftDp': bottomLiftDp,
+      'glassBlurRadius': glassBlurRadius,
       'followMyHyperModifierNavigationLift':
           followMyHyperModifierNavigationLift,
     });

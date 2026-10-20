@@ -12,6 +12,7 @@ class MainActivity : AudioServiceActivity() {
     private var nativeFeedback: NativeFeedback? = null
     private var nativeSelectionToolbar: NativeSelectionToolbar? = null
     private var miuixNavigationOverlay: MiuixNavigationOverlay? = null
+    private var appIconSwitcher: AppIconSwitcher? = null
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
@@ -35,12 +36,15 @@ class MainActivity : AudioServiceActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         nativeFeedback = NativeFeedback(this, flutterEngine)
+        appIconSwitcher = AppIconSwitcher(this, flutterEngine)
         nativeSelectionToolbar = NativeSelectionToolbar(this, flutterEngine)
         miuixNavigationOverlay = MiuixNavigationOverlay(this, flutterEngine)
         window.decorView.post { miuixNavigationOverlay?.attach() }
     }
 
     override fun onDestroy() {
+        appIconSwitcher?.dispose()
+        appIconSwitcher = null
         nativeSelectionToolbar?.dispose()
         nativeSelectionToolbar = null
         nativeFeedback?.dispose()

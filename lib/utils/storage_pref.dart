@@ -11,6 +11,8 @@ import 'package:PiliPlus/models/common/dynamic/up_panel_position.dart';
 import 'package:PiliPlus/models/common/follow_order_type.dart';
 import 'package:PiliPlus/models/common/member/tab_type.dart';
 import 'package:PiliPlus/models/common/mine_expand_content.dart';
+import 'package:PiliPlus/models/common/app_icon_style.dart';
+import 'package:PiliPlus/models/common/glass_material_tuning.dart';
 import 'package:PiliPlus/models/common/mine_tab_type.dart';
 import 'package:PiliPlus/models/common/msg/msg_unread_type.dart';
 import 'package:PiliPlus/models/common/nav_bar_config.dart';
@@ -1076,6 +1078,14 @@ abstract final class Pref {
 
   static bool get floatingNavBar =>
       _setting.get(SettingBoxKey.floatingNavBar, defaultValue: true);
+
+  static AppIconStyle get appIconStyle => AppIconStyle.fromId(
+    _setting.get(SettingBoxKey.appIconStyle),
+  );
+
+  static double get glassBlurRadius => GlassMaterialTuning.normalize(
+    _setting.get(SettingBoxKey.glassBlurRadius),
+  );
 
   static double get floatingNavBottomLift => (_setting.get(
     SettingBoxKey.floatingNavBottomLift,
