@@ -32,6 +32,8 @@ internal data class FlutterBackdropSnapshot(
     val bitmap: Bitmap,
     val sourceWidthPx: Int,
     val sourceHeightPx: Int,
+    val windowLeftPx: Int,
+    val windowTopPx: Int,
 )
 
 internal data class FlutterBackdropDebugState(
@@ -87,6 +89,8 @@ internal class FlutterSurfaceBackdropSampler(
     private var displayedBitmap: Bitmap? = null
     private var displayedSourceWidthPx = 0
     private var displayedSourceHeightPx = 0
+    private var displayedWindowLeftPx = Int.MIN_VALUE
+    private var displayedWindowTopPx = Int.MIN_VALUE
     private var debugState = FlutterBackdropDebugState()
     private val captureRunnable = Runnable {
         captureScheduled = false
@@ -221,6 +225,8 @@ internal class FlutterSurfaceBackdropSampler(
         displayedBitmap = null
         displayedSourceWidthPx = 0
         displayedSourceHeightPx = 0
+        displayedWindowLeftPx = Int.MIN_VALUE
+        displayedWindowTopPx = Int.MIN_VALUE
         pointerDown = false
         keepCapturingUntil = Long.MIN_VALUE
         postTouchCaptureDeadline = Long.MIN_VALUE
@@ -323,6 +329,10 @@ internal class FlutterSurfaceBackdropSampler(
             width = max(1, (sourceRect.width() * SAMPLE_SCALE).toInt()),
             height = max(1, (sourceRect.height() * SAMPLE_SCALE).toInt()),
         )
+        // Retain the real crop origin: clipping at the Surface edges makes the
+        // bleed asymmetric, so centering the cropped image shifts its pixels.
+        val windowLeft = sourceLocation[0] + sourceRect.left
+        val windowTop = sourceLocation[1] + sourceRect.top
         captureInFlight = true
         lastCaptureStartedAt = SystemClock.uptimeMillis()
         updateDebugState {
@@ -349,6 +359,8 @@ internal class FlutterSurfaceBackdropSampler(
                     val contentChanged =
                         displayedSourceWidthPx != sourceRect.width() ||
                             displayedSourceHeightPx != sourceRect.height() ||
+                            displayedWindowLeftPx != windowLeft ||
+                            displayedWindowTopPx != windowTop ||
                             displayedBitmap?.sameAs(destination) != true
                     val firstSampleLatency = if (!hasSnapshot && samplingEnabledAt != Long.MIN_VALUE) {
                         snapshotAt - samplingEnabledAt
@@ -374,11 +386,15 @@ internal class FlutterSurfaceBackdropSampler(
                         displayedBitmap = destination
                         displayedSourceWidthPx = sourceRect.width()
                         displayedSourceHeightPx = sourceRect.height()
+                        displayedWindowLeftPx = windowLeft
+                        displayedWindowTopPx = windowTop
                         onSnapshotChanged(
                             FlutterBackdropSnapshot(
                                 bitmap = destination,
                                 sourceWidthPx = sourceRect.width(),
                                 sourceHeightPx = sourceRect.height(),
+                                windowLeftPx = windowLeft,
+                                windowTopPx = windowTop,
                             ),
                         )
                         if (!pointerDown && postTouchCaptureDeadline != Long.MIN_VALUE) {

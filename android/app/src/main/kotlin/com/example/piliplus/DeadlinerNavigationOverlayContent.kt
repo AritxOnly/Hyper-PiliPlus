@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,10 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +47,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.sp
 import com.aritxonly.deadliner.ui.navigation.MiuixFloatingTabBar
 import com.aritxonly.deadliner.ui.base.FloatingNavigationEdgeMask
@@ -130,6 +136,7 @@ internal fun DeadlinerNavigationOverlayContent(
         )
     }
     val backdrop = rememberLayerBackdrop()
+    var navigationBounds by remember { mutableStateOf<FlutterBackdropBounds?>(null) }
 
     MaterialTheme(colorScheme = materialColors) {
         MiuixTheme(colors = miuixColors) {
@@ -175,6 +182,7 @@ internal fun DeadlinerNavigationOverlayContent(
                             FlutterBackdropLayer(
                                 snapshot = backdropSnapshot,
                                 backdrop = backdrop,
+                                bounds = navigationBounds,
                             )
                             MiuixFloatingTabBar(
                                 items = items,
@@ -190,14 +198,14 @@ internal fun DeadlinerNavigationOverlayContent(
                                 },
                                 modifier = Modifier.onGloballyPositioned { coordinates ->
                                     val position = coordinates.positionInWindow()
-                                    onBackdropBoundsChanged(
-                                        FlutterBackdropBounds(
-                                            left = position.x.roundToInt(),
-                                            top = position.y.roundToInt(),
-                                            width = coordinates.size.width,
-                                            height = coordinates.size.height,
-                                        ),
+                                    val bounds = FlutterBackdropBounds(
+                                        left = position.x.roundToInt(),
+                                        top = position.y.roundToInt(),
+                                        width = coordinates.size.width,
+                                        height = coordinates.size.height,
                                     )
+                                    navigationBounds = bounds
+                                    onBackdropBoundsChanged(bounds)
                                 },
                                 layout = MiuixFloatingTabLayout.Stacked,
                                 backdrop = backdropSnapshot?.let { backdrop },
@@ -326,14 +334,27 @@ private fun DebugLine(text: String, color: Color) {
 private fun FlutterBackdropLayer(
     snapshot: FlutterBackdropSnapshot?,
     backdrop: top.yukonga.miuix.kmp.blur.LayerBackdrop,
+    bounds: FlutterBackdropBounds?,
 ) {
-    if (snapshot == null) return
+    if (snapshot == null || bounds == null) return
     val density = LocalDensity.current
     val sourceSize =
         (snapshot.sourceWidthPx / density.density).dp to
             (snapshot.sourceHeightPx / density.density).dp
     Box(
         modifier = Modifier
+            // Keep the clipped crop in window coordinates, including while the
+            // consumer moves during inset/lift/entry animations between captures.
+            .absoluteOffset {
+                IntOffset(
+                    FlutterBackdropGeometry.alignmentOffset(
+                        snapshot.windowLeftPx, snapshot.sourceWidthPx, bounds.left, bounds.width,
+                    ),
+                    FlutterBackdropGeometry.alignmentOffset(
+                        snapshot.windowTopPx, snapshot.sourceHeightPx, bounds.top, bounds.height,
+                    ),
+                )
+            }
             .graphicsLayer(alpha = BACKDROP_SOURCE_ALPHA)
             .requiredSize(width = sourceSize.first, height = sourceSize.second)
             .layerBackdrop(backdrop),

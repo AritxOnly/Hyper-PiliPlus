@@ -21,6 +21,13 @@
 - 采样裁剪额外留白增至 128dp，覆盖新版模糊核和折射位移；仍保留 20% 下采样。
 - 仅引用所需公共反馈与顶栏辅助组件，不导入 Deadliner 业务页面。
 
+采样坐标修复：PixelCopy 快照保留裁剪区域在窗口中的真实起点，
+Compose 根据该起点与当前底栏的坐标差对齐背景；屏幕边缘裁剪不再被当作对称扩边居中。
+底栏抬升或进入动画期间也以当前底栏位置计算偏移。仍使用普通 APK 可用的 PixelCopy，
+不依赖 HyperModifier/LSPosed 的隐藏捕获接口，也不改变 Deadliner 的光学材质配方。
+`test/scripts/backdrop_geometry_test.py` 在 JVM 上执行生产坐标公式，覆盖边缘裁剪、
+Surface 窗口偏移、底栏移动和奇数像素尺寸。
+
 上游 PiliPlus 同步到 `0d83df96f`。Flutter 继续固定项目补丁版 3.47.4；
 新增双击时间戳通过公开 pointer router 观察，未改动 SDK。
 底部 Sheet 使用现有 SDK/Material 非泛型 State，并收窄 widget getter。
