@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:PiliPlus/models/common/glass_material_tuning.dart';
 import 'package:PiliPlus/models/common/setting_type.dart';
 import 'package:PiliPlus/pages/setting/common_setting.dart';
 import 'package:PiliPlus/pages/setting/widgets/glass_material_slider_dialog.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/path_utils.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,7 +15,17 @@ import 'package:material_ui/material_ui.dart';
 
 void main() {
   final settings = _MemorySettings();
-  setUpAll(() => GStorage.setting = settings);
+  late Directory appSupportDirectory;
+  setUpAll(() {
+    GStorage.setting = settings;
+    // Linux style settings read the SSD marker beneath the application support
+    // directory. Supply the same path initialization as app startup on every host.
+    appSupportDirectory = Directory.systemTemp.createTempSync(
+      'glass-settings-',
+    );
+    appSupportDirPath = appSupportDirectory.path;
+  });
+  tearDownAll(() => appSupportDirectory.deleteSync(recursive: true));
   setUp(() {
     settings.entries.clear();
     settings.entries[SettingBoxKey.horizontalScreen] = false;
@@ -43,6 +56,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Settings page must mount before scrolling',
+      );
       await tester.scrollUntilVisible(
         find.text('柔光玻璃通透程度'),
         150,
