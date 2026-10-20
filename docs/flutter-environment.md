@@ -47,6 +47,14 @@ PUB_HOSTED_URL=https://pub.dev ./scripts/flutterw pub get --enforce-lockfile
 `tool/dependencies-local-snapshot.json` 是此前本地环境的历史快照，不代表此次解析结果；
 实际位置以 `.dart_tool/package_config.json` 为准。
 
+## Ubuntu 上的 Flutter 测试
+
+即使最终构建 Android APK，`flutter test` 也会为 Ubuntu 测试宿主编译
+`cnativeapi` 原生资产。Android Release 工作流会先安装 `clang`、`pkg-config`、
+`libgtk-3-dev`、`libx11-dev` 和 `libxi-dev`，并用
+`pkg-config --cflags --libs gtk+-3.0 x11 xi` 检查头文件与链接库是否可用。
+只安装 Android SDK/NDK 不能满足此测试宿主依赖；不要通过跳过测试绕开错误。
+
 ## 在其他电脑恢复
 
 1. 安装 Flutter 3.47.4 到本项目独占的持久目录（可用 FVM 安装，但不要修改供其他项目共用的 SDK）。确认 `git rev-parse HEAD` 与上述提交一致，且 `git status --porcelain` 为空。
