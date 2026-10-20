@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show File;
 
 import 'package:PiliPlus/common/constants.dart';
@@ -45,12 +46,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
   late final TextEditingController _textController;
   late final _imagePicker = ImagePicker();
   AccountService accountService = Get.find<AccountService>();
+  late ThemeData theme;
 
   @override
   void initState() {
     super.initState();
     _textController = TextEditingController();
     _getInfo();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    theme = Theme.of(context);
   }
 
   @override
@@ -61,7 +69,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return SimpleScaffold(
       appBar: AppBar(
         title: const Text('账号资料'),
@@ -69,7 +76,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
       ),
-      body: _buildBody(theme, _loadingState),
+      body: _buildBody(),
     );
   }
 
@@ -117,10 +124,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         });
   }
 
-  Widget _buildBody(
-    ThemeData theme,
-    LoadingState<AccountMyInfoData> loadingState,
-  ) {
+  Widget _buildBody() {
     late final divider = Divider(
       height: 1,
       color: theme.dividerColor.withValues(alpha: 0.1),
@@ -131,7 +135,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       color: theme.dividerColor.withValues(alpha: 0.1),
     );
 
-    return switch (loadingState) {
+    return switch (_loadingState) {
       Loading() => m3eLoading,
       Success(:final response) => ListView(
         padding: EdgeInsets.only(
@@ -140,7 +144,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
         children: [
           divider1,
           _item(
-            theme: theme,
             title: '头像',
             widget: Padding(
               padding: const EdgeInsets.symmetric(vertical: 5),
@@ -154,14 +157,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             onTap: () => EasyThrottle.throttle(
               'imagePicker',
               const Duration(milliseconds: 500),
-              () {
-                _pickImg(theme);
-              },
+              _pickImg,
             ),
           ),
           divider,
           _item(
-            theme: theme,
             title: '昵称',
             text: response.name,
             onTap: () {
@@ -178,7 +178,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           divider,
           _item(
-            theme: theme,
             title: '性别',
             text: _sex(response.sex!),
             onTap: () => showDialog(
@@ -188,7 +187,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           divider,
           _item(
-            theme: theme,
             title: '出生年月',
             text: response.birthday,
             onTap: () =>
@@ -208,7 +206,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           divider,
           _item(
-            theme: theme,
             title: '个性签名',
             text: response.sign,
             onTap: () => _editDialog(
@@ -219,7 +216,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           divider1,
           _item(
-            theme: theme,
             title: '头像挂件',
             onTap: () => PageUtils.inAppWebview(
               'https://www.bilibili.com/h5/mall/pendant/home',
@@ -227,7 +223,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           divider1,
           _item(
-            theme: theme,
             title: 'UID',
             needIcon: false,
             text: response.mid.toString(),
@@ -235,7 +230,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           divider1,
           _item(
-            theme: theme,
             title: '哔哩哔哩认证',
             onTap: () => PageUtils.inAppWebview(
               'https://account.bilibili.com/official/mobile/home',
@@ -428,7 +422,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _item({
-    required ThemeData theme,
     required String title,
     Widget? widget,
     String? text,
@@ -475,7 +468,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  Future<void> _pickImg(ThemeData theme) async {
+  Future<void> _pickImg() async {
     try {
       final pickedFile = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -535,7 +528,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
               .then((res) {
                 if (res.data['code'] == 0) {
                   SmartDialog.showToast('修改成功');
-                  Future.delayed(const Duration(milliseconds: 500), () {
+                  Timer(const Duration(milliseconds: 500), () {
                     if (mounted) {
                       _getInfo();
                     }

@@ -8,6 +8,10 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/player_bar.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/mine_expand_content.dart';
+import 'package:PiliPlus/models/common/mine_tab_type.dart';
+import 'package:PiliPlus/pages/mine/widgets/history_item.dart';
+import 'package:PiliPlus/pages/mine/widgets/later_item.dart';
+import 'package:PiliPlus/pages/mine/widgets/sub_item.dart';
 import 'package:PiliPlus/models/common/nav_bar_config.dart';
 import 'package:PiliPlus/models_new/fav/fav_folder/data.dart';
 import 'package:PiliPlus/models_new/fav/fav_folder/list.dart';
@@ -18,7 +22,7 @@ import 'package:PiliPlus/pages/home/view.dart';
 import 'package:PiliPlus/pages/login/controller.dart';
 import 'package:PiliPlus/pages/main/controller.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
-import 'package:PiliPlus/pages/mine/widgets/item.dart';
+import 'package:PiliPlus/pages/mine/widgets/fav_item.dart';
 import 'package:PiliPlus/pages/mine/widgets/recent_history_item.dart';
 import 'package:PiliPlus/utils/bili_utils.dart';
 import 'package:PiliPlus/utils/extension/get_ext.dart';
@@ -26,7 +30,6 @@ import 'package:PiliPlus/utils/extension/num_ext.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
-import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -45,6 +48,7 @@ class _MediaPageState extends CommonPageState<MinePage>
     with AutomaticKeepAliveClientMixin {
   final MineController controller = Get.putOrFind(MineController.new);
   late final MainController _mainController = Get.find<MainController>();
+  late ThemeData theme;
 
   @override
   bool get wantKeepAlive => true;
@@ -70,9 +74,14 @@ class _MediaPageState extends CommonPageState<MinePage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    theme = Theme.of(context);
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
-    final theme = Theme.of(context);
     final secondary = theme.colorScheme.secondary;
     return ColoredBox(
       color: theme.colorScheme.surface,
@@ -102,11 +111,20 @@ class _MediaPageState extends CommonPageState<MinePage>
                           child: _buildActions(secondary),
                         ),
                       ),
-                      Obx(
-                        () => controller.loadingState.value is Loading
-                            ? const SizedBox.shrink()
-                            : _buildExpandContent(theme, secondary),
-                      ),
+                      if (!controller.hasConfiguredTabs)
+                        Obx(
+                          () => controller.loadingState.value is Loading
+                              ? const SizedBox.shrink()
+                              : _buildExpandContent(theme, secondary),
+                        )
+                      else
+                        for (final tab in controller.mineTabs)
+                          switch (tab) {
+                            .favorite => Obx(_buildFav),
+                            .history => Obx(_buildHistory),
+                            .later => Obx(_buildLater),
+                            .sub => Obx(_buildSub),
+                          },
                     ],
                   ),
                 ),
@@ -173,84 +191,80 @@ class _MediaPageState extends CommonPageState<MinePage>
     const padding = EdgeInsets.all(8);
     const style = ButtonStyle(tapTargetSize: .shrinkWrap);
     return PlayerBar(
-      children: [
-        if (widget.showBackBtn)
-          const Padding(
-            padding: EdgeInsets.only(left: 8),
-            child: BackButton(),
-          )
-        else
-          const SizedBox.shrink(),
-        Row(
-          spacing: 5,
-          mainAxisSize: .min,
-          children: [
-            if (!_mainController.hasHome) ...[
-              IconButton(
-                iconSize: iconSize,
-                padding: padding,
-                style: style,
-                tooltip: '搜索',
-                onPressed: () => Get.toNamed('/search'),
-                icon: const Icon(Icons.search),
-              ),
-              msgBadge(_mainController),
-            ],
-            if (GStorage.reply != null)
-              IconButton(
-                iconSize: iconSize,
-                padding: padding,
-                style: style,
-                tooltip: '评论记录',
-                onPressed: () => Get.toNamed('/myReply'),
-                icon: const Icon(Icons.message_outlined),
-              ),
-            Obx(
-              () {
-                final anonymity = MineController.anonymity.value;
-                return IconButton(
-                  iconSize: iconSize,
-                  padding: padding,
-                  style: style,
-                  tooltip: "${anonymity ? '退出' : '进入'}无痕模式",
-                  onPressed: MineController.onChangeAnonymity,
-                  icon: anonymity
-                      ? const Icon(MdiIcons.incognito)
-                      : const Icon(MdiIcons.incognitoOff),
-                );
-              },
-            ),
+      left: widget.showBackBtn
+          ? const Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: BackButton(),
+            )
+          : const SizedBox.shrink(),
+      right: Row(
+        spacing: 5,
+        mainAxisSize: .min,
+        children: [
+          if (!_mainController.hasHome) ...[
             IconButton(
               iconSize: iconSize,
               padding: padding,
               style: style,
-              tooltip: '切换账号',
-              onPressed: () => LoginPageController.switchAccountDialog(context),
-              icon: const Icon(Icons.switch_account_outlined),
+              tooltip: '搜索',
+              onPressed: () => Get.toNamed('/search'),
+              icon: const Icon(Icons.search),
             ),
-            Obx(
-              () => IconButton(
-                iconSize: iconSize,
-                padding: padding,
-                style: style,
-                tooltip: '切换至${controller.nextThemeType.label}主题',
-                onPressed: controller.onChangeTheme,
-                icon: controller.themeType.value.icon,
-              ),
-            ),
-            IconButton(
-              iconSize: iconSize,
-              padding: padding,
-              style: style,
-              tooltip: '设置',
-              onPressed: () =>
-                  Get.toNamed('/setting', preventDuplicates: false),
-              icon: const Icon(Icons.settings_outlined),
-            ),
-            const SizedBox(width: 16),
+            msgBadge(_mainController),
           ],
-        ),
-      ],
+          if (GStorage.reply != null)
+            IconButton(
+              iconSize: iconSize,
+              padding: padding,
+              style: style,
+              tooltip: '评论记录',
+              onPressed: () => Get.toNamed('/myReply'),
+              icon: const Icon(Icons.message_outlined),
+            ),
+          Obx(
+            () {
+              final anonymity = MineController.anonymity.value;
+              return IconButton(
+                iconSize: iconSize,
+                padding: padding,
+                style: style,
+                tooltip: "${anonymity ? '退出' : '进入'}无痕模式",
+                onPressed: MineController.onChangeAnonymity,
+                icon: anonymity
+                    ? const Icon(MdiIcons.incognito)
+                    : const Icon(MdiIcons.incognitoOff),
+              );
+            },
+          ),
+          IconButton(
+            iconSize: iconSize,
+            padding: padding,
+            style: style,
+            tooltip: '切换账号',
+            onPressed: () => LoginPageController.switchAccountDialog(context),
+            icon: const Icon(Icons.switch_account_outlined),
+          ),
+          Obx(
+            () => IconButton(
+              iconSize: iconSize,
+              padding: padding,
+              style: style,
+              tooltip: '切换至${controller.nextThemeType.label}主题',
+              onPressed: controller.onChangeTheme,
+              icon: controller.themeType.value.icon,
+            ),
+          ),
+          IconButton(
+            iconSize: iconSize,
+            padding: padding,
+            style: style,
+            tooltip: '设置',
+            onPressed: () => Get.toNamed('/setting', preventDuplicates: false),
+            icon: const Icon(Icons.settings_outlined),
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
     );
   }
 
@@ -473,9 +487,11 @@ class _MediaPageState extends CommonPageState<MinePage>
     );
   }
 
-  void _autoRefresh() => Future.delayed(
+  void _autoRefresh([MineRefreshMixin? tabCtr]) => Timer(
     const Duration(milliseconds: 150),
-    () => controller.onRefresh(isManual: false),
+    () => tabCtr != null
+        ? tabCtr.onRefresh(isManual: false)
+        : controller.onRefresh(isManual: false),
   );
 
   Widget _buildExpandContent(ThemeData theme, Color secondary) {
@@ -576,13 +592,152 @@ class _MediaPageState extends CommonPageState<MinePage>
         padding: const .only(left: 20, top: 10, right: 20),
         itemCount: favoriteList.length,
         itemBuilder: (context, index) => FavFolderItem(
-          heroTag: Utils.makeHeroTag(favoriteList[index].id),
           item: favoriteList[index],
           onPop: _autoRefresh,
         ),
         scrollDirection: .horizontal,
         separatorBuilder: (_, _) => const SizedBox(width: 14),
       ),
+    );
+  }
+
+  Widget _buildFav() {
+    return _buildTab(
+      .favorite,
+      controller.favCtr!,
+      itemBuilder: (element) => FavFolderItem(
+        item: element,
+        onPop: () => _autoRefresh(controller.favCtr!),
+      ),
+      onPushDetail: () => Get.toNamed(
+        '/fav',
+      )?.whenComplete(() => _autoRefresh(controller.favCtr!)),
+    );
+  }
+
+  Widget _buildHistory() {
+    return _buildTab(
+      .history,
+      controller.historyCtr!,
+      itemBuilder: (element) => MineHistoryItem(
+        item: element,
+        onPop: () => _autoRefresh(controller.historyCtr!),
+      ),
+      onPushDetail: () => Get.toNamed(
+        '/history',
+      )?.whenComplete(() => _autoRefresh(controller.historyCtr!)),
+    );
+  }
+
+  Widget _buildLater() {
+    return _buildTab(
+      .later,
+      controller.laterCtr!,
+      itemBuilder: (element) => MineLaterItem(
+        item: element,
+        onPop: () => _autoRefresh(controller.laterCtr!),
+      ),
+      onPushDetail: () => Get.toNamed(
+        '/later',
+      )?.whenComplete(() => _autoRefresh(controller.laterCtr!)),
+    );
+  }
+
+  Widget _buildSub() {
+    return _buildTab(
+      .sub,
+      controller.subCtr!,
+      itemBuilder: (element) => MineSubItem(
+        item: element,
+        onPop: () => _autoRefresh(controller.subCtr!),
+      ),
+      onPushDetail: () => Get.toNamed(
+        '/subscription',
+      )?.whenComplete(() => _autoRefresh(controller.subCtr!)),
+    );
+  }
+
+  Widget _buildTab<R, T>(
+    MineTabType tab,
+    MineRefreshMixin<R, T> tabCtr, {
+    required Widget Function(T element) itemBuilder,
+    required VoidCallback onPushDetail,
+  }) {
+    final Widget child;
+    switch (tabCtr.loadingState.value) {
+      case Loading():
+        return const SizedBox.shrink();
+      case Success(:final response):
+        if (response == null || response.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        child = SizedBox(
+          height: 180,
+          child: ListView.separated(
+            itemCount: response.length,
+            controller: tabCtr.scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const .only(left: 20, top: 10, right: 20),
+            itemBuilder: (context, index) {
+              if (index == response.length - 1) {
+                tabCtr.onLoadMore();
+              }
+              return SizedBox(width: 180, child: itemBuilder(response[index]));
+            },
+            scrollDirection: .horizontal,
+            separatorBuilder: (_, _) => const SizedBox(width: 14),
+          ),
+        );
+      case Error(:final errMsg):
+        if (errMsg == null) return const SizedBox.shrink();
+        child = SizedBox(
+          height: 160,
+          child: Center(child: Text(errMsg, textAlign: .center)),
+        );
+    }
+    final secondary = theme.colorScheme.secondary;
+    return Column(
+      children: [
+        Divider(
+          height: 20,
+          color: theme.colorScheme.outline.withValues(alpha: 0.1),
+        ),
+        ListTile(
+          dense: true,
+          onTap: onPushDetail,
+          title: Padding(
+            padding: const EdgeInsets.only(left: 10),
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '${tab.label}  ',
+                    style: const TextStyle(fontSize: 16, fontWeight: .bold),
+                  ),
+                  if (tabCtr.count != null)
+                    TextSpan(
+                      text: '${tabCtr.count}  ',
+                      style: TextStyle(color: secondary),
+                    ),
+                  WidgetSpan(
+                    child: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 18,
+                      color: secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          trailing: IconButton(
+            tooltip: '刷新',
+            onPressed: tabCtr.onRefresh,
+            icon: const Icon(Icons.refresh, size: 20),
+          ),
+        ),
+        child,
+      ],
     );
   }
 }

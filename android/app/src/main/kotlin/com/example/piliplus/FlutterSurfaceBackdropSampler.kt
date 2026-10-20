@@ -486,7 +486,9 @@ internal class FlutterSurfaceBackdropSampler(
     }
 
     private companion object {
-        const val SAMPLE_BLEED_DP = 32f
+        // Deadliner now reserves three blur sigmas plus lens displacement.
+        // Supply real neighbouring pixels instead of clamping the crop at the glass rim.
+        const val SAMPLE_BLEED_DP = 128f
         // A 20% linear sample still has ample detail under the strong blur,
         // while reducing PixelCopy work enough to target the display cadence.
         const val SAMPLE_SCALE = 0.20f

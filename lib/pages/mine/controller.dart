@@ -8,6 +8,17 @@ import 'package:PiliPlus/models/common/theme/theme_type.dart';
 import 'package:PiliPlus/models/user/info.dart';
 import 'package:PiliPlus/models/user/stat.dart';
 import 'package:PiliPlus/pages/common/common_data_controller.dart';
+import 'package:PiliPlus/models/common/later_view_type.dart';
+import 'package:PiliPlus/models/common/mine_tab_type.dart';
+import 'package:PiliPlus/models_new/fav/fav_folder/data.dart';
+import 'package:PiliPlus/models_new/fav/fav_folder/list.dart';
+import 'package:PiliPlus/models_new/history/data.dart';
+import 'package:PiliPlus/models_new/history/list.dart';
+import 'package:PiliPlus/models_new/later/data.dart';
+import 'package:PiliPlus/models_new/later/list.dart';
+import 'package:PiliPlus/models_new/sub/sub/data.dart';
+import 'package:PiliPlus/models_new/sub/sub/list.dart';
+import 'package:PiliPlus/pages/common/common_list_controller.dart';
 import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
@@ -78,24 +89,51 @@ class MineController extends CommonDataController<Object, Object>
     ];
   }
 
-  @override
-  void onInit() {
-    super.onInit();
-    UserInfoData? userInfoCache = Pref.userInfoCache;
-    if (userInfoCache != null) {
-      userInfo.value = userInfoCache;
-      queryData();
-      queryUserInfo();
+  late final Set<MineTabType> mineTabs;
+  bool get hasConfiguredTabs =>
+      GStorage.setting.get(SettingBoxKey.mineTabs) != null;
+  FavCtr? favCtr;
+  HistoryCtr? historyCtr;
+  LaterCtr? laterCtr;
+  SubCtr? subCtr;
+
+  Iterable<MineRefreshMixin> tabCtr() sync* {
+    if (favCtr != null) yield favCtr!;
+    if (historyCtr != null) yield historyCtr!;
+    if (laterCtr != null) yield laterCtr!;
+    if (subCtr != null) yield subCtr!;
+  }
+
+  void _initTabs() {
+    mineTabs = hasConfiguredTabs ? Pref.mineTabs : {};
+    for (final tab in mineTabs) {
+      switch (tab) {
+        case .favorite:
+          favCtr = FavCtr();
+        case .history:
+          historyCtr = HistoryCtr();
+        case .later:
+          laterCtr = LaterCtr();
+        case .sub:
+          subCtr = SubCtr();
+      }
     }
   }
 
-  bool get isLogin {
-    if (!accountService.isLogin.value) {
-      // SmartDialog.showToast('账号未登录');
-      return false;
+  @override
+  void onInit() {
+    super.onInit();
+    _initTabs();
+    final userInfoCache = Pref.userInfoCache;
+    if (userInfoCache != null) {
+      userInfo.value = userInfoCache;
+      queryUserInfo();
+      queryData();
+      tabCtr().forEach((ctr) => ctr.queryData());
     }
-    return true;
   }
+
+  bool get isLogin => accountService.isLogin.value;
 
   Future<void> queryUserInfo() async {
     final res = await UserHttp.userInfo();
@@ -152,7 +190,7 @@ class MineController extends CommonDataController<Object, Object>
       ps: 10,
       mid: Accounts.main.mid,
     ),
-    .history => UserHttp.historyList(type: 'archive', pageSize: 10),
+    .history => UserHttp.historyList(type: 'archive', ps: 10),
   };
 
   @override
@@ -318,12 +356,13 @@ class MineController extends CommonDataController<Object, Object>
     if (!accountService.isLogin.value) {
       return Future.syncValue(null);
     }
-    queryUserInfo();
-    return super.onRefresh().whenComplete(() {
-      if (isManual) {
-        scrollController.jumpToTop();
-      }
-    });
+    if (isManual) {
+      queryUserInfo();
+    }
+    queryData();
+    return Future.wait(
+      tabCtr().map((ctr) => ctr.onRefresh(isManual: isManual)),
+    );
   }
 
   @override
@@ -332,8 +371,127 @@ class MineController extends CommonDataController<Object, Object>
       onRefresh();
     } else {
       userInfo.value = UserInfoData();
-      userStat.value = const UserStat();
       loadingState.value = LoadingState.loading();
+      userStat.value = const UserStat();
+      tabCtr().forEach(
+        (ctr) => ctr.loadingState.value = LoadingState.loading(),
+      );
     }
   }
+
+  @override
+  void onClose() {
+    for (final ctr in tabCtr()) {
+      ctr.onClose();
+    }
+    super.onClose();
+  }
+}
+
+const _ps = 20;
+
+mixin MineRefreshMixin<R, T> on CommonListController<R, T> {
+  int? count;
+
+  @override
+  void checkIsEnd(int length) {
+    if (count != null && length >= count!) {
+      isEnd = true;
+    }
+  }
+
+  @override
+  Future<void> onRefresh({bool isManual = true}) {
+    count = null;
+    if (isManual) {
+      return super.onRefresh().whenComplete(scrollController.jumpToTop);
+    }
+    return super.onRefresh();
+  }
+}
+
+class FavCtr extends CommonListController<FavFolderData, FavFolderInfo>
+    with MineRefreshMixin {
+  @override
+  List<FavFolderInfo>? getDataList(FavFolderData response) {
+    count = response.count;
+    if (response.hasMore == false) isEnd = true;
+    return response.list;
+  }
+
+  @override
+  Future<LoadingState<FavFolderData>> customGetData() => FavHttp.userfavFolder(
+    pn: page,
+    ps: _ps,
+    mid: Accounts.main.mid,
+  );
+}
+
+class HistoryCtr extends CommonListController<HistoryData, HistoryItemModel>
+    with MineRefreshMixin {
+  int? viewAt;
+  int? max;
+
+  @override
+  List<HistoryItemModel>? getDataList(HistoryData response) {
+    final last = response.list?.lastOrNull;
+    if (last == null) {
+      isEnd = true;
+      max = viewAt = null;
+    } else {
+      isEnd = false;
+      max = last.history.oid;
+      viewAt = last.viewAt;
+    }
+    return response.list;
+  }
+
+  @override
+  Future<LoadingState<HistoryData>> customGetData() => UserHttp.historyList(
+    type: 'all',
+    viewAt: viewAt,
+    max: max,
+    ps: _ps,
+    account: Accounts.history,
+  );
+
+  @override
+  Future<void> onRefresh({bool isManual = true}) {
+    viewAt = null;
+    max = null;
+    return super.onRefresh(isManual: isManual);
+  }
+}
+
+class LaterCtr extends CommonListController<LaterData, LaterItemModel>
+    with MineRefreshMixin {
+  @override
+  List<LaterItemModel>? getDataList(LaterData response) {
+    count = response.count;
+    return response.list;
+  }
+
+  @override
+  Future<LoadingState<LaterData>> customGetData() => UserHttp.seeYouLater(
+    page: page,
+    ps: _ps,
+    viewed: LaterViewType.all.type,
+  );
+}
+
+class SubCtr extends CommonListController<SubData, SubItemModel>
+    with MineRefreshMixin {
+  @override
+  List<SubItemModel>? getDataList(SubData response) {
+    count = response.count;
+    if (response.hasMore == false) isEnd = true;
+    return response.list;
+  }
+
+  @override
+  Future<LoadingState<SubData>> customGetData() => UserHttp.userSubFolder(
+    pn: page,
+    ps: _ps,
+    mid: Accounts.main.mid,
+  );
 }

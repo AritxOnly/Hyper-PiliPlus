@@ -36,6 +36,7 @@ abstract final class ApiType {
       Api.liveRoomDmToken,
       Api.liveRoomDmPrefetch,
       Api.superChatMsg,
+      Api.getLiveInfoByUser,
 
       // Api.memberInfo,
       // Api.bgmDetail,
@@ -97,6 +98,7 @@ abstract final class ApiType {
       Api.ugcUrl,
       Api.pgcUrl,
       Api.pugvUrl,
+      Api.ogvUrl,
       Api.tvPlayUrl,
       Api.videoshot,
     },

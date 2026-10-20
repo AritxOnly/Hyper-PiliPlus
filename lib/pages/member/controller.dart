@@ -55,6 +55,7 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
   int? chargeCount;
   bool get hasCharge => chargeCount != null && chargeCount! > 0;
 
+  int? medal;
   List<Owner>? guards;
   Object? guardCount;
   bool get hasGuard => guards?.isNotEmpty ?? false;
@@ -88,6 +89,8 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
     final guard = data.guard;
     guards = guard?.item;
     guardCount = guard?.count;
+    // medal
+    medal = data.medal;
 
     reserves = data.reservationCardList;
 
@@ -134,7 +137,17 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
             return item.param == data.defaultTab;
           });
         }
-        tabs = tab2!.map((item) => Tab(text: item.title ?? '')).toList();
+        tabs = tab2!
+            .map(
+              (item) => Tab(
+                child: Text(
+                  item.title ?? '',
+                  softWrap: false,
+                  overflow: .fade,
+                ),
+              ),
+            )
+            .toList();
         tabController?.dispose();
         tabController = TabController(
           vsync: this,
@@ -181,7 +194,8 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
 
   void blockUser(BuildContext context) {
     if (!account.isLogin) {
-      SmartDialog.showToast('账号未登录');
+      Pref.setBlackMid(mid);
+      SmartDialog.showToast('屏蔽成功');
       return;
     }
     showDialog(
@@ -191,9 +205,16 @@ class MemberController extends CommonDataController<SpaceData, SpaceData?>
         content: Text(relation.value != 128 ? '确定拉黑UP主?' : '从黑名单移除UP主'),
         actions: [
           TextButton(
+            onPressed: () {
+              Get.back();
+              Pref.setBlackMid(mid);
+            },
+            child: const Text('本地屏蔽'),
+          ),
+          TextButton(
             onPressed: Get.back,
             child: Text(
-              '点错了',
+              '取消',
               style: TextStyle(color: Theme.of(context).colorScheme.outline),
             ),
           ),

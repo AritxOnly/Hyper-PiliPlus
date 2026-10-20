@@ -14,6 +14,19 @@ extension IterableExt<T> on Iterable<T> {
     }
     return value;
   }
+
+  Iterable<List<R>> mapChunked<R>(int size, R Function(T e) toElement) sync* {
+    Iterator<T> iterator = this.iterator;
+    List<R> buffer = [];
+    while (iterator.moveNext()) {
+      buffer.add(toElement(iterator.current));
+      if (buffer.length == size) {
+        yield buffer;
+        buffer = [];
+      }
+    }
+    if (buffer.isNotEmpty) yield buffer;
+  }
 }
 
 extension ListExt<T> on List<T> {
@@ -30,11 +43,26 @@ extension ListExt<T> on List<T> {
     return List<R>.from(this);
   }
 
-  T findClosestTarget(
-    bool Function(T) test,
-    T Function(T, T) combine,
+  T findTargetMedia(
+    int Function(T) test,
+    int preferId,
   ) {
-    return where(test).reduceOrNull(combine) ?? reduce(combine);
+    T? selected;
+    int selectedId = -1;
+    T? lowest;
+    int lowestId = 1 << 31;
+    for (final e in this) {
+      final id = test(e);
+      if (id <= preferId && id > selectedId) {
+        selected = e;
+        selectedId = id;
+      }
+      if (id < lowestId) {
+        lowest = e;
+        lowestId = id;
+      }
+    }
+    return selected ?? lowest ?? first;
   }
 
   /// from [algorithms.lowerBoundBy].

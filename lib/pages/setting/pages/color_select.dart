@@ -26,11 +26,18 @@ class ColorSelectPage extends StatefulWidget {
 class _ColorSelectPageState extends State<ColorSelectPage> {
   final ctr = Get.put(_ColorSelectController());
 
+  late ThemeData theme;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    theme = Theme.of(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    TextStyle titleStyle = theme.textTheme.titleMedium!;
-    TextStyle subTitleStyle = theme.textTheme.labelMedium!.copyWith(
+    final titleStyle = theme.textTheme.titleMedium!;
+    final subTitleStyle = theme.textTheme.labelMedium!.copyWith(
       color: theme.colorScheme.outline,
     );
     final size = MediaQuery.sizeOf(context);

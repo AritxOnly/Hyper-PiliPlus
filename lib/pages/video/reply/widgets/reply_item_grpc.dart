@@ -655,13 +655,10 @@ class ReplyItemGrpc extends StatelessWidget {
                             ),
                             const TextSpan(text: ' '),
                           ],
-                          TextSpan(
-                            text: childReply.root == childReply.parent
-                                ? ': '
-                                : childReply.mid == upMid
-                                ? ''
-                                : ' ',
-                          ),
+                          if (childReply.root == childReply.parent)
+                            const TextSpan(text: ': ')
+                          else if (childReply.mid != upMid)
+                            const TextSpan(text: ' '),
                           _buildMessage(
                             context,
                             colorScheme,
@@ -1147,7 +1144,23 @@ class ReplyItemGrpc extends StatelessWidget {
               leading: Icon(Icons.delete_outlined, color: errorColor, size: 19),
               title: Text('删除', style: style.copyWith(color: errorColor)),
             ),
-          if (ownerMid != Int64.ZERO)
+          if (ownerMid == Int64.ZERO)
+            ListTile(
+              onTap: () {
+                Get.back();
+                Pref.setBlackMid(item.mid.toInt());
+                onDelete();
+                SmartDialog.showToast('屏蔽成功');
+                return;
+              },
+              minLeadingWidth: 0,
+              leading: Icon(Icons.error_outline, color: errorColor, size: 19),
+              title: Text(
+                '屏蔽',
+                style: TextStyle(fontSize: 14, color: errorColor),
+              ),
+            )
+          else
             ListTile(
               onTap: () {
                 Get.back();
@@ -1157,6 +1170,8 @@ class ReplyItemGrpc extends StatelessWidget {
 
                 autoWrapReportDialog(
                   context,
+                  onRemove: onDelete,
+                  mid: () => item.mid.toInt(),
                   ReportOptions.commentReport,
                   withContent: ReportOptions.withContentReply,
                   contentRequired: ReportOptions.contentRequiredReply,

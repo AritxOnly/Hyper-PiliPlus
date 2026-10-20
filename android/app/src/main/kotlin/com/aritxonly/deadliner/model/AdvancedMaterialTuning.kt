@@ -3,9 +3,9 @@ package com.aritxonly.deadliner.model
 import kotlin.math.abs
 
 object AdvancedMaterialTuning {
-    const val MinBlurRadius = 28f
-    const val DefaultBlurRadius = 92f
-    const val MaxBlurRadius = 256f
+    const val MinBlurRadius = 16f
+    const val DefaultBlurRadius = 84f
+    const val MaxBlurRadius = 168f
     fun normalizeBlurRadius(value: Float): Float = if (value.isFinite()) {
         value.coerceIn(MinBlurRadius, MaxBlurRadius)
     } else {
@@ -16,7 +16,8 @@ object AdvancedMaterialTuning {
         val radius = normalizeBlurRadius(value)
         val levels = AdvancedMaterialLevel.entries
         val upperIndex = levels.indexOfFirst { radius <= it.blurRadius }
-        if (upperIndex <= 0) return levels.first().blurSaturation
+        if (upperIndex < 0) return levels.last().blurSaturation
+        if (upperIndex == 0) return levels.first().blurSaturation
 
         val upper = levels[upperIndex]
         val lower = levels[upperIndex - 1]

@@ -1,10 +1,10 @@
 import 'dart:math';
 
 import 'package:PiliPlus/common/widgets/badge.dart';
-import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/gesture/horizontal_drag_gesture_recognizer.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
+import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scroll_physics.dart'
@@ -17,11 +17,14 @@ import 'package:PiliPlus/pages/article/controller.dart';
 import 'package:PiliPlus/pages/article/widgets/article_ops.dart';
 import 'package:PiliPlus/pages/article/widgets/html_render.dart';
 import 'package:PiliPlus/pages/article/widgets/opus_content.dart';
+import 'package:PiliPlus/pages/article/widgets/sliver_list_ext.dart';
+import 'package:PiliPlus/pages/article/widgets/sliver_to_box_adapter.dart';
 import 'package:PiliPlus/pages/common/dyn/common_dyn_page.dart';
 import 'package:PiliPlus/pages/dynamics_repost/view.dart';
 import 'package:PiliPlus/utils/date_utils.dart';
 import 'package:PiliPlus/utils/extension/get_ext.dart';
 import 'package:PiliPlus/utils/extension/num_ext.dart';
+import 'package:PiliPlus/utils/extension/scroll_controller_ext.dart';
 import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/image_utils.dart';
 import 'package:PiliPlus/utils/num_utils.dart';
@@ -43,19 +46,34 @@ class ArticlePage extends StatefulWidget {
   State<ArticlePage> createState() => _ArticlePageState();
 }
 
-class _ArticlePageState extends CommonDynPageState<ArticlePage> {
-  late final Object? _transitionTag =
-      Get.arguments is Map ? Get.arguments['heroTag'] : null;
+class _ArticlePageState extends CommonDynPageState<ArticlePage>
+    with DynReplyLocateStateMixin {
+  late final Object? _transitionTag = Get.arguments is Map
+      ? Get.arguments['heroTag']
+      : null;
   @override
-  final ArticleController controller = Get.putOrFind(
-    ArticleController.new,
-    tag: Get.parameters['type']! + Get.parameters['id']!,
-  );
+  late final ArticleController controller;
+  @override
+  bool get isArticle => true;
 
   @override
-  dynamic get arguments => {
-    'id': controller.id,
-  };
+  dynamic get arguments => {'id': controller.id};
+
+  UniqueKey? _centerKey;
+  bool get reverse => _centerKey != null;
+
+  @override
+  void initState() {
+    final params = Get.parameters;
+    controller = Get.putOrFind(
+      ArticleController.new,
+      tag: params['type']! + params['id']!,
+    );
+    if (params.containsKey('viewComment') || controller.rootRpId != null) {
+      _centerKey = UniqueKey();
+    }
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +107,9 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
         padding: .symmetric(horizontal: padding),
         child: SelectionArea(
           child: CustomScrollView(
+            primary: true,
+            key: _centerKey,
+            center: _centerKey,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               _buildContent(
@@ -102,7 +123,10 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
                   ),
                 ),
               ),
-              SelectionContainer.disabled(child: buildReplyHeader()),
+              SelectionContainer.disabled(
+                key: _centerKey,
+                child: buildReplyHeader(),
+              ),
               SelectionContainer.disabled(
                 child: Obx(() => replyList(controller.loadingState.value)),
               ),
@@ -112,6 +136,7 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
       );
     }
 
+    _centerKey = null;
     padding = padding / 4;
     final flex = controller.ratio[0].toInt();
     final flex1 = controller.ratio[1].toInt();
@@ -122,6 +147,7 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
           flex: flex,
           child: SelectionArea(
             child: CustomScrollView(
+              primary: true,
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverPadding(
@@ -180,6 +206,7 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
               images: controller.images,
               maxWidth: maxWidth,
               opusId: controller.id,
+              reverse: reverse,
             );
           } else if (controller.opusData?.modules.moduleBlocked
               case final moduleBlocked?) {
@@ -191,6 +218,7 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
             if (controller.articleData?.type == 3) {
               // json
               return ArticleOpus(
+                reverse: reverse,
                 ops: controller.articleData?.ops,
                 maxWidth: maxWidth,
               );
@@ -206,7 +234,8 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
                 ),
               );
             } else {
-              content = SliverList.separated(
+              content = SliverListExt.separated(
+                reverse: reverse,
                 itemCount: res.body!.children.length,
                 itemBuilder: (context, index) {
                   return htmlRender(
@@ -443,6 +472,11 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
                                 pic: summary.cover,
                                 title: summary.title,
                                 uname: summary.author?.name,
+                                replyInfo: (
+                                  oid: controller.oid,
+                                  replyType: controller.replyType,
+                                ),
+                                mentionItem: summary.author?.mentionItem,
                                 onSuccess: () {
                                   if (forward != null) {
                                     int count = forward.count ?? 0;
@@ -460,14 +494,14 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
                       },
                     ),
                   ),
-                  Expanded(
-                    child: textIconButton(
-                      text: '分享',
-                      icon: CustomIcons.share_node,
-                      stat: null,
-                      onPressed: () => ShareUtils.shareText(controller.url),
-                    ),
-                  ),
+                  // Expanded(
+                  //   child: textIconButton(
+                  //     text: '分享',
+                  //     icon: CustomIcons.share_node,
+                  //     stat: null,
+                  //     onPressed: () => ShareUtils.shareText(controller.url),
+                  //   ),
+                  // ),
                   Expanded(
                     child: textIconButton(
                       icon: FontAwesomeIcons.star,
@@ -475,6 +509,14 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
                       text: '收藏',
                       stat: stats.favorite,
                       onPressed: controller.onFav,
+                    ),
+                  ),
+                  Expanded(
+                    child: textIconButton(
+                      icon: FontAwesomeIcons.comment,
+                      text: '评论',
+                      stat: stats.comment,
+                      onPressed: _jumpToComment,
                     ),
                   ),
                   Expanded(
@@ -550,6 +592,7 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
                       CachedNetworkImage(
                         height: height,
                         width: maxWidth,
+                        gaplessPlayback: true,
                         memCacheWidth: memCacheWidth,
                         memCacheHeight: memCacheHeight,
                         fit: pic.isLongPic == true ? BoxFit.cover : null,
@@ -628,6 +671,27 @@ class _ArticlePageState extends CommonDynPageState<ArticlePage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _jumpToComment() {
+    if (!isPortrait) return;
+    if (_centerKey == null) {
+      _centerKey = UniqueKey();
+      setState(() {});
+    } else {
+      PrimaryScrollController.of(context).jumpToTop();
+    }
+  }
+
+  @override
+  Widget httpError({String? errMsg, VoidCallback? onReload}) {
+    return ArticleSliverToBoxAdapter(
+      child: HttpError(
+        isSliver: false,
+        errMsg: errMsg,
+        onReload: controller.onReload,
       ),
     );
   }

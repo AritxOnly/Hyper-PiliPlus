@@ -1,6 +1,5 @@
 package com.aritxonly.hyperpiliplus
 
-import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
@@ -48,7 +47,6 @@ class MainActivity : AudioServiceActivity() {
         nativeFeedback = null
         miuixNavigationOverlay?.dispose()
         miuixNavigationOverlay = null
-        stopService(Intent(this, com.ryanheise.audioservice.AudioService::class.java))
         super.onDestroy()
     }
 

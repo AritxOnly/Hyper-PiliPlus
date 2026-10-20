@@ -102,15 +102,16 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
         cid.value,
         heroTag,
       );
-      if (videoDetail.value.ugcSeason?.id == response.ugcSeason?.id) {
+      final currentDetail = videoDetail.value;
+      if (currentDetail.ugcSeason?.id == response.ugcSeason?.id) {
         // keep reversed season
-        response.ugcSeason = videoDetail.value.ugcSeason;
+        response.ugcSeason = currentDetail.ugcSeason;
       }
-      if (videoDetail.value.cid == response.cid) {
+      if (currentDetail.cid == response.cid) {
         // keep reversed pages
         response
-          ..pages = videoDetail.value.pages
-          ..isPageReversed = videoDetail.value.isPageReversed;
+          ..pages = currentDetail.pages
+          ..isPageReversed = currentDetail.isPageReversed;
       }
       videoDetail.value = response;
       try {
@@ -121,12 +122,13 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
         }
         if (videoDetailCtr.showReply) {
           try {
-            Get.find<VideoReplyController>(tag: heroTag).count.value =
-                response.stat?.reply ?? 0;
+            Get.find<VideoReplyController>(tag: heroTag)
+              ..count.value = response.stat?.reply ?? 0
+              ..intro = response.desc?.trim();
           } catch (_) {}
         }
       } catch (_) {}
-      final pages = videoDetail.value.pages;
+      final pages = response.pages;
       if (pages != null && pages.isNotEmpty && cid.value == 0) {
         cid.value = pages.first.cid!;
       }
@@ -363,6 +365,11 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
                     pic: videoDetail.pic,
                     title: videoDetail.title,
                     uname: videoDetail.owner?.name,
+                    replyInfo: (
+                      oid: videoDetailCtr.aid,
+                      replyType: videoDetailCtr.videoType.replyType,
+                    ),
+                    mentionItem: videoDetail.owner?.mentionItem,
                   ),
                 );
               },
@@ -449,7 +456,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
           followStatus
             ..value.attribute = attribute
             ..refresh();
-          Future.delayed(const Duration(milliseconds: 500), queryFollowStatus);
+          Timer(const Duration(milliseconds: 500), queryFollowStatus);
         },
       );
     }
@@ -566,8 +573,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
     bool isPart = false;
 
     final videoDetail = this.videoDetail.value;
-
-    if (!skipPart && (videoDetail.pages?.length ?? 0) > 1) {
+    if (!skipPart && videoDetail.hasParts) {
       isPart = true;
       episodes.addAll(videoDetail.pages!);
     } else if (videoDetailCtr.isPlayAll) {
@@ -633,7 +639,7 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
       final videoDetail = this.videoDetail.value;
 
       // part -> playall -> season
-      if (!skipPart && (videoDetail.pages?.length ?? 0) > 1) {
+      if (!skipPart && videoDetail.hasParts) {
         isPart = true;
         final List<Part> pages = videoDetail.pages!;
         episodes.addAll(pages);

@@ -20,6 +20,7 @@ if (!isBuiltInKotlinEnabled) {
 
 android {
     namespace = "com.aritxonly.hyperpiliplus"
+    sourceSets.getByName("main").java.srcDir(rootProject.file("third_party/miuix-glass/src/commonMain/kotlin"))
     compileSdk = 37
     // Keep every native Flutter plugin on the installed, newest compatible NDK.
     ndkVersion = "28.2.13676358"
@@ -92,10 +93,10 @@ android {
                     value = "PiliPlus dev",
                 )
             }
-//            proguardFiles(
-//                getDefaultProguardFile("proguard-android-optimize.txt"),
-//                "proguard-rules.pro"
-//            )
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
         debug {
             applicationIdSuffix = ".debug"

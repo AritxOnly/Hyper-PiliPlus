@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aritxonly.deadliner.ui.navigation.MiuixFloatingTabBar
+import com.aritxonly.deadliner.ui.base.FloatingNavigationEdgeMask
 import com.aritxonly.deadliner.ui.navigation.MiuixFloatingTabBarDefaults
 import com.aritxonly.deadliner.ui.navigation.MiuixFloatingTabItem
 import com.aritxonly.deadliner.ui.navigation.MiuixFloatingTabLayout
@@ -139,6 +140,8 @@ internal fun DeadlinerNavigationOverlayContent(
                     enter = fadeIn(tween(180)) + slideInVertically(tween(260)) { it / 2 },
                     exit = fadeOut(tween(140)) + slideOutVertically(tween(220)) { it / 2 },
                 ) {
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+                    FloatingNavigationEdgeMask(bottomLift = state.bottomLiftDp.dp)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -195,6 +198,7 @@ internal fun DeadlinerNavigationOverlayContent(
                                 backdrop = backdropSnapshot?.let { backdrop },
                             )
                         }
+                    }
                     }
                 }
             }

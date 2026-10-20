@@ -25,13 +25,27 @@
 
 包装器每次检查 SDK 提交和全部已跟踪补丁，环境不匹配时直接报错，不会使用 PATH 中的其他 Flutter。本机保留原有依赖解析结果，使用 `--no-pub`；发布版本参数和签名仍按项目发布流程提供。
 
-## 已发现的依赖差异
+## 本次上游同步后的依赖
 
-`dynamic_color` 的锁文件曾误记为 `2.1.0`，与 `flutter_miuix 1.1.1` 的 `^1.9.0` 约束冲突。现已将该项及归档 SHA-256 校正为本机 Release 实际使用的 `1.9.0`；CI 继续启用 `--enforce-lockfile`，不通过自动升级掩盖不一致。
+上游同步到 `0d83df96f`，应用版本为 `2.1.6`。保留本项目独占的补丁版 Flutter 3.47.4，
+未自动切换到上游 3.47.7；手势时间戳使用公开 pointer router 适配。
 
-此前 Release 实际使用的 `media_kit` Git 提交为 `08b7b9410968fa39ae2fc814d57f9f889079afc9`，仓库锁文件记录的是 `73771ec38176be2d984a3049c28177bce23b54a0`。严格离线恢复锁文件会尝试获取本机缺失的 Git 仓库，因此本次没有重解析或升级依赖。
+锁文件对齐此次上游依赖，并保留当前 MIUIX 使用的 `flutter_miuix 1.2.0`、
+`dynamic_color 1.9.0` 和 `cupertino_icons 1.0.9`。这三个包的版本和官方归档哈希已核对。
+锁文件统一使用 pub.dev；若本机默认使用其他镜像，严格恢复时显式指定：
 
-`tool/dependencies-local-snapshot.json` 记录了当前全部包的解析位置（SDK、缓存目录均用占位符），用于后续核对实际版本。它是诊断快照，不替代 `pubspec.lock`。SDK 迁移已完成；全新电脑要复现之前 Release 的全部依赖，还需要单独校准锁文件。恢复仓库锁文件可使用 `./scripts/flutterw pub get --enforce-lockfile`，但不能据此认为使用的就是此前本机依赖。
+```sh
+PUB_HOSTED_URL=https://pub.dev ./scripts/flutterw pub get --enforce-lockfile
+```
+
+本次已先在独立临时项目严格验证锁文件，再恢复当前项目依赖。
+`material_ui` 更新为上游锁定的 `1.6.0`，使用仓库 `scripts/prepare_android_ci.py`
+恢复 Android 包补丁。SDK 补丁无需重复应用。
+
+当前实际解析的 `media_kit` Git 提交为 `73771ec38176be2d984a3049c28177bce23b54a0`，
+`media_kit_video` 为 `85f0a69ea66b100882b27a3375c72e5155375343`，均与锁文件一致。
+`tool/dependencies-local-snapshot.json` 是此前本地环境的历史快照，不代表此次解析结果；
+实际位置以 `.dart_tool/package_config.json` 为准。
 
 ## 在其他电脑恢复
 
@@ -44,6 +58,6 @@
    ```
 
 3. 在项目根目录创建本机链接：`mkdir -p .fvm`，然后 `ln -s /absolute/path/to/flutter .fvm/flutter_sdk`。已有链接时先确认它的目标，勿覆盖实际 SDK 目录。
-4. 执行 `./scripts/flutterw --check-sdk` 和 `./scripts/flutterw pub get --enforce-lockfile`，再运行测试。Android SDK、JDK 和签名文件仍需在本机配置；本次只固定 Flutter/Dart 与已有依赖锁，不承诺所有平台构建字节完全相同。
+4. 执行 `./scripts/flutterw --check-sdk` 和 `PUB_HOSTED_URL=https://pub.dev ./scripts/flutterw pub get --enforce-lockfile`，再运行测试。Android SDK、JDK 和签名文件仍需在本机配置；本次只固定 Flutter/Dart 与已有依赖锁，不承诺所有平台构建字节完全相同。
 
 升级 Flutter 时应单独评审版本、SDK 补丁、包装器内的提交/校验和与依赖锁，并通过测试和 Release 构建后再切换；不要直接运行 `flutter upgrade` 或 `pub upgrade`。
