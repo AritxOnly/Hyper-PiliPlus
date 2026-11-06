@@ -1,4 +1,4 @@
-import 'package:PiliPlus/models/common/video/audio_quality.dart';
+import 'package:PiliPlus/models/common/video/base_quality.dart';
 import 'package:PiliPlus/models/common/video/cdn_type.dart';
 import 'package:PiliPlus/models/common/video/video_decode_type.dart';
 import 'package:PiliPlus/models/video/play/url.dart'
@@ -32,6 +32,17 @@ abstract final class VideoUtils {
 
     if (defaultCDNService == CDNService.baseUrl) {
       return urls.first;
+    }
+
+    if (defaultCDNService == CDNService.akamai &&
+        !(isAudio && disableAudioCDN)) {
+      // Akamai URLs have their own signature (e.g. hdnts). Replacing another
+      // CDN's host preserves the wrong signature and results in HTTP 403.
+      // Keep the API-provided URL intact, including its encoded query string.
+      return urls.firstWhere(
+        (url) => Uri.tryParse(url)?.host == CDNService.akamai.host,
+        orElse: () => urls.first,
+      );
     }
 
     String? mcdnTf;
@@ -179,7 +190,7 @@ abstract final class VideoUtils {
       orElse: () => targetQaVideoList.first,
     );
 
-    return (targetQuality, targetFormat, targetDecode, targetVideo);
+    return (targetVideo.id, targetFormat, targetDecode, targetVideo);
   }
 
   static AudioItem findTargetAudio(

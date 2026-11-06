@@ -86,7 +86,13 @@ void main() {
         expect(tester.getRect(flight).width, greaterThan(initial.width + 1));
         expect(find.byType(BackdropFilter), findsNothing);
         expect(find.byType(ImageFiltered), findsNothing);
-        expect(find.byType(SnapshotWidget), findsNothing);
+        // Newer material_ui keeps inert snapshot wrappers in the source route.
+        // Neither route may actually capture the shared-element transition.
+        for (final snapshot in tester.widgetList<SnapshotWidget>(
+          find.byType(SnapshotWidget),
+        )) {
+          expect(snapshot.controller.allowSnapshotting, isFalse);
+        }
         expect(find.byType(RawImage), findsNothing);
         expect(
           find.byKey(const ValueKey('video-transition-dim')),

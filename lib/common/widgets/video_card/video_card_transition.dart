@@ -96,6 +96,9 @@ class VideoPageTransitionRoute<T> extends GetPageRoute<T> {
   VideoPageTransitionRoute({required WidgetBuilder builder, super.settings})
     : super(page: () => Builder(builder: builder));
 
+  @override
+  bool get allowSnapshotting => false;
+
   bool _gestureCommitted = false;
   AnimationStatusListener? _gestureCompletion;
   final _entryReady = Completer<bool>();

@@ -246,7 +246,7 @@ class _VideoCardVState extends State<VideoCardV> {
                   child: Text(
                     videoItem.owner.name.toString(),
                     maxLines: 1,
-                    overflow: .clip,
+                    overflow: .ellipsis,
                     semanticsLabel: 'UP：${videoItem.owner.name}',
                     style: TextStyle(
                       height: 1.5,

@@ -10,6 +10,7 @@ class SimpleScaffold extends StatelessWidget {
     this.backgroundColor,
     this.fab,
     this.appBar,
+    this.extendBodyBehindAppBar = false,
     required this.body,
   });
 
@@ -17,6 +18,7 @@ class SimpleScaffold extends StatelessWidget {
   final Widget? fab;
   final Widget? appBar;
   final Widget body;
+  final bool extendBodyBehindAppBar;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +27,7 @@ class SimpleScaffold extends StatelessWidget {
       child: ScaffoldLayout(
         fab: fab,
         appBar: appBar,
+        extendBodyBehindAppBar: extendBodyBehindAppBar,
         body: body,
       ),
     );
@@ -39,12 +42,14 @@ class ScaffoldLayout
     super.key,
     this.fab,
     this.appBar,
+    this.extendBodyBehindAppBar = false,
     required this.body,
   });
 
   final Widget? fab;
   final Widget? appBar;
   final Widget body;
+  final bool extendBodyBehindAppBar;
 
   @override
   Iterable<ScaffoldType> get slots => ScaffoldType.values;
@@ -60,7 +65,18 @@ class ScaffoldLayout
   SlottedContainerRenderObjectMixin<ScaffoldType, RenderBox> createRenderObject(
     BuildContext context,
   ) {
-    return _RenderScaffoldLayout();
+    return _RenderScaffoldLayout(extendBodyBehindAppBar);
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant SlottedContainerRenderObjectMixin<ScaffoldType, RenderBox>
+    renderObject,
+  ) {
+    super.updateRenderObject(context, renderObject);
+    (renderObject as _RenderScaffoldLayout).extendBodyBehindAppBar =
+        extendBodyBehindAppBar;
   }
 }
 
@@ -68,6 +84,15 @@ class _RenderScaffoldLayout extends RenderBox
     with
         SlottedContainerRenderObjectMixin<ScaffoldType, RenderBox>,
         SlottedLayoutMixin {
+  _RenderScaffoldLayout(this._extendBodyBehindAppBar);
+
+  bool _extendBodyBehindAppBar;
+  set extendBodyBehindAppBar(bool value) {
+    if (_extendBodyBehindAppBar == value) return;
+    _extendBodyBehindAppBar = value;
+    markNeedsLayout();
+  }
+
   RenderBox? get fab => childForSlot(.fab);
   RenderBox? get appBar => childForSlot(.appBar);
   RenderBox get body => childForSlot(.body)!;
@@ -91,10 +116,10 @@ class _RenderScaffoldLayout extends RenderBox
       ).height;
       setOffset(appBar, .zero);
 
-      bodyOffset = Offset(0, appBarHeight);
+      bodyOffset = Offset(0, _extendBodyBehindAppBar ? 0 : appBarHeight);
       bodyConstraints = BoxConstraints.tightFor(
         width: constraints.maxWidth,
-        height: math.max(constraints.maxHeight - appBarHeight, 0.0),
+        height: math.max(constraints.maxHeight - bodyOffset.dy, 0.0),
       );
     } else {
       bodyOffset = .zero;
@@ -125,8 +150,8 @@ class _RenderScaffoldLayout extends RenderBox
       }
     }
 
-    doPaint(appBar);
     doPaint(body);
+    doPaint(appBar);
     doPaint(fab);
   }
 }

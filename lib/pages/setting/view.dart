@@ -51,7 +51,7 @@ class _SettingPageState extends State<SettingPage> {
     ),
     _SettingsModel(
       type: .privacySetting,
-      subtitle: '黑名单',
+      subtitle: '账号、黑名单',
       icon: Icon(Icons.privacy_tip_outlined),
     ),
     _SettingsModel(

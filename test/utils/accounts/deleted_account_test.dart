@@ -23,6 +23,8 @@ void main() {
     tempDir = await Directory.systemTemp.createTemp('piliplus-account-test-');
     Hive.init(tempDir.path);
     GStorage.regAdapter();
+    GStorage.setting = await Hive.openBox('setting');
+    GStorage.localCache = await Hive.openBox('localCache');
     Accounts.account = await Hive.openBox<LoginAccount>('account');
   });
 

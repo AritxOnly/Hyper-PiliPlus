@@ -27,8 +27,8 @@
 
 ## 本次上游同步后的依赖
 
-上游同步到 `0d83df96f`，应用版本为 `2.1.6`。保留本项目独占的补丁版 Flutter 3.47.4，
-未自动切换到上游 3.47.7；手势时间戳使用公开 pointer router 适配。
+上游同步到 `737163c53`，应用版本为 `2.2.0`。保留本项目独占的补丁版 Flutter 3.47.4，
+未自动切换到上游 3.47.9；手势时间戳使用公开 pointer router 适配。
 
 锁文件对齐此次上游依赖，并保留当前 MIUIX 使用的 `flutter_miuix 1.2.0`、
 `dynamic_color 1.9.0` 和 `cupertino_icons 1.0.9`。这三个包的版本和官方归档哈希已核对。
@@ -39,7 +39,7 @@ PUB_HOSTED_URL=https://pub.dev ./scripts/flutterw pub get --enforce-lockfile
 ```
 
 本次已先在独立临时项目严格验证锁文件，再恢复当前项目依赖。
-`material_ui` 更新为上游锁定的 `1.6.0`，使用仓库 `scripts/prepare_android_ci.py`
+`material_ui` 更新为上游锁定的 `1.9.0`，使用仓库 `scripts/prepare_android_ci.py`
 恢复 Android 包补丁。SDK 补丁无需重复应用。
 
 当前实际解析的 `media_kit` Git 提交为 `73771ec38176be2d984a3049c28177bce23b54a0`，
