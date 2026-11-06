@@ -17,6 +17,7 @@ import 'package:PiliPlus/models_new/fav/fav_folder/data.dart';
 import 'package:PiliPlus/models_new/fav/fav_folder/list.dart';
 import 'package:PiliPlus/models_new/history/data.dart';
 import 'package:PiliPlus/models_new/history/list.dart';
+import 'package:PiliPlus/models_new/later/data.dart';
 import 'package:PiliPlus/pages/common/common_page.dart';
 import 'package:PiliPlus/pages/home/view.dart';
 import 'package:PiliPlus/pages/login/controller.dart';
@@ -495,10 +496,9 @@ class _MediaPageState extends CommonPageState<MinePage>
   );
 
   Widget _buildExpandContent(ThemeData theme, Color secondary) {
-    final isHistory =
-        controller.expandContent.value == MineExpandContent.history;
-    final title = isHistory ? '最近播放' : '我的收藏';
-    final route = isHistory ? '/history' : '/fav';
+    final content = controller.expandContent.value;
+    final title = content.title;
+    final route = content.route;
     return Column(
       children: [
         ListTile(
@@ -533,20 +533,24 @@ class _MediaPageState extends CommonPageState<MinePage>
             icon: const Icon(Icons.refresh, size: 20),
           ),
         ),
-        _buildExpandContentBody(controller.loadingState.value, isHistory),
+        _buildExpandContentBody(controller.loadingState.value, content),
       ],
     );
   }
 
-  Widget _buildExpandContentBody(LoadingState loadingState, bool isHistory) {
+  Widget _buildExpandContentBody(
+    LoadingState loadingState,
+    MineExpandContent content,
+  ) {
     return switch (loadingState) {
       Loading() => const SizedBox.shrink(),
       Success(:final response) => Builder(
         builder: (context) {
-          if (isHistory) {
-            return _buildRecentHistoryBody(response as HistoryData);
-          }
-          return _buildFavoriteBody(response as FavFolderData);
+          return switch (content) {
+            .history => _buildRecentHistoryBody(response as HistoryData),
+            .favorite => _buildFavoriteBody(response as FavFolderData),
+            .later => _buildLaterBody(response as LaterData),
+          };
         },
       ),
       Error(:final errMsg) => SizedBox(
@@ -596,6 +600,25 @@ class _MediaPageState extends CommonPageState<MinePage>
           onPop: _autoRefresh,
         ),
         scrollDirection: .horizontal,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
+      ),
+    );
+  }
+
+  Widget _buildLaterBody(LaterData data) {
+    final items = data.list;
+    if (items == null || items.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      height: 184,
+      child: ListView.separated(
+        controller: controller.scrollController,
+        padding: const .fromLTRB(20, 10, 20, 0),
+        scrollDirection: .horizontal,
+        itemCount: items.length,
+        itemBuilder: (_, index) => SizedBox(
+          width: 180,
+          child: MineLaterItem(item: items[index], onPop: _autoRefresh),
+        ),
         separatorBuilder: (_, _) => const SizedBox(width: 14),
       ),
     );

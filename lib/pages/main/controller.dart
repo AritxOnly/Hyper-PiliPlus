@@ -61,7 +61,14 @@ class MainController extends GetxController
   final floatingNavBar = Pref.floatingNavBar;
   final miuixBackdropSampling = Pref.miuixBackdropSampling;
   final useSideBar = Pref.useSideBar;
-  final hideSideBarLabel = Pref.hideSideBarLabel;
+  final hideSideBarLabel = Pref.hideSideBarLabel.obs;
+
+  void toggleSideBar() {
+    final collapsed = !hideSideBarLabel.value;
+    hideSideBarLabel.value = collapsed;
+    GStorage.setting.put(SettingBoxKey.hideSideBarLabel, collapsed);
+  }
+
   final mainTabBarView = Pref.mainTabBarView;
   late final optTabletNav = Pref.optTabletNav;
 

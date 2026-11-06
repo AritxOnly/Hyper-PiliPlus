@@ -14,6 +14,7 @@ import 'package:PiliPlus/common/widgets/gesture/mouse_interactive_viewer.dart';
 import 'package:PiliPlus/common/widgets/gesture/player_gesture_recognizer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget.dart';
 import 'package:PiliPlus/common/widgets/pair.dart';
+import 'package:PiliPlus/common/widgets/player_bar.dart';
 import 'package:PiliPlus/common/widgets/progress_bar/audio_video_progress_bar.dart';
 import 'package:PiliPlus/common/widgets/progress_bar/segment_progress_bar.dart';
 import 'package:PiliPlus/common/widgets/view_safe_area.dart';
@@ -40,12 +41,14 @@ import 'package:PiliPlus/plugin/pl_player/models/data_status.dart';
 import 'package:PiliPlus/plugin/pl_player/models/double_tap_type.dart';
 import 'package:PiliPlus/plugin/pl_player/models/fullscreen_mode.dart';
 import 'package:PiliPlus/plugin/pl_player/models/gesture_type.dart';
+import 'package:PiliPlus/plugin/pl_player/models/player_control_layout.dart';
 import 'package:PiliPlus/plugin/pl_player/models/video_fit_type.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/app_bar_ani.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/backward_seek.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/bottom_control.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/compact_player_controls.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/player_control_layout.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/forward_seek.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/mpv_convert_webp.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/play_pause_btn.dart';
@@ -399,6 +402,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     VideoDetailController videoDetailController,
     bool isLandscape,
     Widget progress,
+    PlayerControlLayout layout,
   ) {
     final videoDetail = introController.videoDetail.value;
     final isSeason = videoDetail.ugcSeason != null;
@@ -408,6 +412,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     final anySeason = isSeason || isPart || isPgc || isPlayAll;
     final isFullScreen = this.isFullScreen;
     final double widgetWidth = isLandscape && isFullScreen ? 42 : 35;
+    final compact = layout == PlayerControlLayout.compact;
 
     Widget progressWidget(
       BottomControlType bottomControl, {
@@ -454,20 +459,47 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
 
       /// 时间进度
       BottomControlType.time => Obx(
-        () => PlayerControlLabel(
-          child: Text(
-            '${DurationUtils.formatDuration(plPlayerController.position.value)} / ${DurationUtils.formatDuration(plPlayerController.duration.value)}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textDirection: TextDirection.ltr,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
-              fontWeight: FontWeight.w400,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
-        ),
+        () => compact
+            ? PlayerControlLabel(
+                child: Text(
+                  '${DurationUtils.formatDuration(plPlayerController.position.value)} / ${DurationUtils.formatDuration(plPlayerController.duration.value)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textDirection: TextDirection.ltr,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w400,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    DurationUtils.formatDuration(
+                      plPlayerController.position.value,
+                    ),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: PlatformUtils.isDesktop ? 12 : 10,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  Text(
+                    DurationUtils.formatDuration(
+                      plPlayerController.duration.value,
+                    ),
+                    style: TextStyle(
+                      color: const Color(0xFFD0D0D0),
+                      fontSize: PlatformUtils.isDesktop ? 12 : 10,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
       ),
 
       /// 高能进度条
@@ -903,13 +935,37 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       if (plPlayerController.isAnim) .superResolution,
       if (isNotFileSource && plPlayerController.showViewPoints) .viewPoints,
       if (isNotFileSource && anySeason) .episode,
-      .fit,
+      if (compact ||
+          isFullScreen ||
+          plPlayerController.isDesktopPip ||
+          maxWidth >= 500)
+        .fit,
       if (isNotFileSource) .aiTranslate,
       .subtitle,
       .speed,
-      if (isNotFileSource) .qa,
+      if (isNotFileSource &&
+          (compact ||
+              isFullScreen ||
+              plPlayerController.isDesktopPip ||
+              maxWidth >= 500))
+        .qa,
       if (!plPlayerController.isDesktopPip) .fullscreen,
     ];
+    if (!compact) {
+      return UpstreamPlayerControls(
+        progress: progress,
+        controls: PlayerBar(
+          left: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: userSpecifyItemLeft.map(progressWidget).toList(),
+          ),
+          right: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: userSpecifyItemRight.map(progressWidget).toList(),
+          ),
+        ),
+      );
+    }
     String label(BottomControlType type) => switch (type) {
       .playOrPause => '播放',
       .pre => '上一集',
@@ -1678,11 +1734,13 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                           animCtr: _animationController,
                           controller: plPlayerController,
                           videoDetailController: videoDetailController,
-                          buildBottomControl: (progress) => buildBottomControl(
-                            videoDetailController,
-                            maxWidth > maxHeight,
-                            progress,
-                          ),
+                          buildBottomControl: (progress, layout) =>
+                              buildBottomControl(
+                                videoDetailController,
+                                maxWidth > maxHeight,
+                                progress,
+                                layout,
+                              ),
                         ),
                   ),
                 ],

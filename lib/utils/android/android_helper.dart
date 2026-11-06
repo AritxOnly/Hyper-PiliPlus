@@ -30,6 +30,8 @@ abstract final class PiliAndroidHelper {
   }
 
   static Future<void> updateMiuixNavigation({
+    bool wideFold = false,
+    bool dockCollapsed = false,
     required List<Map<String, Object?>> destinations,
     required int selectedIndex,
     required bool visible,
@@ -49,6 +51,8 @@ abstract final class PiliAndroidHelper {
     // Queue native visibility first; enabling the notifier immediately requests
     // a fresh sample, even if the surface is already idle.
     final update = _miuixNavigationChannel.invokeMethod<void>('update', {
+      'wideFold': wideFold,
+      'dockCollapsed': dockCollapsed,
       'destinations': destinations,
       'selectedIndex': selectedIndex,
       'visible': visible,

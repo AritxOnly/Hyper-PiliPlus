@@ -2,7 +2,9 @@ import 'package:PiliPlus/common/widgets/progress_bar/audio_video_progress_bar.da
 import 'package:PiliPlus/common/widgets/progress_bar/segment_progress_bar.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/models/player_control_layout.dart';
 import 'package:PiliPlus/plugin/pl_player/view/view.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/player_control_layout.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
@@ -24,7 +26,8 @@ class BottomControl extends StatelessWidget {
   final bool isFullScreen;
   final AnimationController animCtr;
   final PlPlayerController controller;
-  final Widget Function(Widget progress) buildBottomControl;
+  final Widget Function(Widget progress, PlayerControlLayout layout)
+  buildBottomControl;
   final VideoDetailController videoDetailController;
 
   void onDragStart(ThumbDragDetails duration) {
@@ -69,7 +72,10 @@ class BottomControl extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      PlayerControlLayoutBuilder(builder: _build);
+
+  Widget _build(BuildContext context, PlayerControlLayout layout) {
     final colorScheme = ColorScheme.of(context);
     final primary = colorScheme.isLight
         ? colorScheme.inversePrimary
@@ -83,7 +89,9 @@ class BottomControl extends StatelessWidget {
         !controller.isFileSource;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 2),
+      padding: layout == PlayerControlLayout.compact
+          ? const EdgeInsets.fromLTRB(8, 0, 8, 2)
+          : EdgeInsets.zero,
       child: buildBottomControl(
         Obx(
           () => Offstage(
@@ -155,6 +163,7 @@ class BottomControl extends StatelessWidget {
             ),
           ),
         ),
+        layout,
       ),
     );
   }

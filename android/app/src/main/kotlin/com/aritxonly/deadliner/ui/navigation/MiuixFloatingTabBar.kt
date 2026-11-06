@@ -77,6 +77,8 @@ import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.layout
 import kotlin.math.roundToInt
 import kotlin.math.sign
 
@@ -97,8 +99,11 @@ enum class MiuixFloatingTabLayout {
     Stacked,
 }
 
+internal val LocalDockFraction = androidx.compose.runtime.compositionLocalOf { 0f }
+internal val LocalDockHeight = androidx.compose.runtime.compositionLocalOf { 54.dp }
+
 object MiuixFloatingTabBarDefaults {
-    val Height = 54.dp
+    val Height: androidx.compose.ui.unit.Dp @Composable get() = LocalDockHeight.current
     // 6dp content padding - 3dp indicator overflow = the same 3dp visible edge as top/bottom.
     val HorizontalContentPadding = 6.dp
     val VerticalContentPadding = 3.dp
@@ -409,9 +414,16 @@ private fun FloatingTabItemContent(
             }
         }
     }
+    val labelFraction = 1f - LocalDockFraction.current
     val label: @Composable () -> Unit = {
         Text(
             text = item.label,
+            modifier = Modifier.clipToBounds().layout { measurable, constraints ->
+                val label = measurable.measure(constraints.copy(minHeight = 0, maxHeight = androidx.compose.ui.unit.Constraints.Infinity))
+                layout(label.width, (label.height * labelFraction).roundToInt()) {
+                    label.placeRelativeWithLayer(0, 0) { alpha = labelFraction }
+                }
+            },
             color = animatedContentColor,
             style = when (layout) {
                 MiuixFloatingTabLayout.Horizontal -> MaterialTheme.typography.labelMedium

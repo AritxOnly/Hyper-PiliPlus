@@ -140,7 +140,15 @@ internal fun DeadlinerNavigationOverlayContent(
 
     MaterialTheme(colorScheme = materialColors) {
         MiuixTheme(colors = miuixColors) {
+            val fraction by androidx.compose.animation.core.animateFloatAsState(
+                targetValue = if (state.wideFold && state.dockCollapsed) 1f else 0f,
+                animationSpec = androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = 350f),
+                label = "scrolling-dock",
+            )
             CompositionLocalProvider(
+                com.aritxonly.deadliner.ui.navigation.LocalDockFraction provides fraction,
+                com.aritxonly.deadliner.ui.navigation.LocalDockHeight provides
+                    androidx.compose.ui.unit.lerp(if (state.wideFold) 52.dp else 54.dp, 40.dp, fraction),
                 LocalAdvancedMaterialSpec provides createAdvancedMaterialSpec(
                     enabled = true,
                     blurRadius = state.glassBlurRadius,

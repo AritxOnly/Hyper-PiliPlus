@@ -52,22 +52,31 @@ class MineController extends CommonDataController<Object, Object>
       (Accounts.account.isNotEmpty && !Accounts.heartbeat.isLogin).obs;
 
   List<({IconData icon, String title, VoidCallback onTap})> get list {
-    final isHistory = expandContent.value == MineExpandContent.history;
+    final content = expandContent.value;
     return [
       (
         icon: CustomIcons.folderDownloadOutline,
         title: '离线缓存',
         onTap: () => Get.toNamed('/download'),
       ),
-      (
-        icon: isHistory ? Icons.favorite_border_outlined : CustomIcons.history,
-        title: isHistory ? '我的收藏' : '观看记录',
-        onTap: () {
-          if (isLogin) {
-            Get.toNamed(isHistory ? '/fav' : '/history');
-          }
-        },
-      ),
+      if (content != MineExpandContent.favorite)
+        (
+          icon: Icons.favorite_border_outlined,
+          title: '我的收藏',
+          onTap: () {
+            if (isLogin) {
+              Get.toNamed('/fav');
+            }
+          },
+        ),
+      if (content != MineExpandContent.history)
+        (
+          icon: CustomIcons.history,
+          title: '观看记录',
+          onTap: () {
+            if (isLogin) Get.toNamed('/history');
+          },
+        ),
       (
         icon: CustomIcons.subscriptions_outlined,
         title: '我的订阅',
@@ -77,15 +86,16 @@ class MineController extends CommonDataController<Object, Object>
           }
         },
       ),
-      (
-        icon: CustomIcons.watch_later_outlined,
-        title: '稍后再看',
-        onTap: () {
-          if (isLogin) {
-            Get.toNamed('/later');
-          }
-        },
-      ),
+      if (content != MineExpandContent.later)
+        (
+          icon: CustomIcons.watch_later_outlined,
+          title: '稍后再看',
+          onTap: () {
+            if (isLogin) {
+              Get.toNamed('/later');
+            }
+          },
+        ),
     ];
   }
 
@@ -178,11 +188,11 @@ class MineController extends CommonDataController<Object, Object>
   }
 
   @override
-  Future<LoadingState<Object>> customGetData() => _getExpandContent(
+  Future<LoadingState<Object>> customGetData() => getExpandContent(
     expandContent.value,
   );
 
-  Future<LoadingState<Object>> _getExpandContent(
+  Future<LoadingState<Object>> getExpandContent(
     MineExpandContent content,
   ) => switch (content) {
     .favorite => FavHttp.userfavFolder(
@@ -191,6 +201,11 @@ class MineController extends CommonDataController<Object, Object>
       mid: Accounts.main.mid,
     ),
     .history => UserHttp.historyList(type: 'archive', ps: 10),
+    .later => UserHttp.seeYouLater(
+      page: 1,
+      ps: 10,
+      viewed: LaterViewType.all.type,
+    ),
   };
 
   @override
@@ -198,7 +213,7 @@ class MineController extends CommonDataController<Object, Object>
     if (isLoading) return;
     isLoading = true;
     final content = expandContent.value;
-    final res = await _getExpandContent(content);
+    final res = await getExpandContent(content);
     if (content == expandContent.value) {
       if (res is Success<Object>) {
         loadingState.value = res;

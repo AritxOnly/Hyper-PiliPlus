@@ -36,6 +36,7 @@ import 'package:PiliPlus/plugin/pl_player/models/bottom_progress_behavior.dart';
 import 'package:PiliPlus/plugin/pl_player/models/fullscreen_mode.dart';
 import 'package:PiliPlus/plugin/pl_player/models/hwdec_type.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
+import 'package:PiliPlus/plugin/pl_player/models/player_control_layout.dart';
 import 'package:PiliPlus/utils/device_utils.dart';
 import 'package:PiliPlus/utils/extension/iterable_ext.dart';
 import 'package:PiliPlus/utils/global_data.dart';
@@ -393,6 +394,11 @@ abstract final class Pref {
 
   static bool get showViewPoints =>
       _setting.get(SettingBoxKey.showViewPoints, defaultValue: true);
+
+  static PlayerControlLayout get playerControlLayout =>
+      PlayerControlLayout.fromPreference(
+        _setting.get(SettingBoxKey.playerControlLayout),
+      );
 
   static bool get showRelatedVideo =>
       _setting.get(SettingBoxKey.showRelatedVideo, defaultValue: true);

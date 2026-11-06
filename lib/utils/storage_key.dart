@@ -76,6 +76,7 @@ abstract final class SettingBoxKey {
       checkDynamic = 'checkDynamic',
       dynamicPeriod = 'dynamicPeriod',
       showViewPoints = 'showViewPoints',
+      playerControlLayout = 'playerControlLayout',
       showRelatedVideo = 'showRelatedVideo',
       showVideoReply = 'showVideoReply',
       showBangumiReply = 'showBangumiReply',

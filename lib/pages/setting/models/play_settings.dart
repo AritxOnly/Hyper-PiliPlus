@@ -13,6 +13,7 @@ import 'package:PiliPlus/pages/setting/widgets/slider_dialog.dart';
 import 'package:PiliPlus/plugin/pl_player/models/bottom_progress_behavior.dart';
 import 'package:PiliPlus/plugin/pl_player/models/fullscreen_mode.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
+import 'package:PiliPlus/plugin/pl_player/models/player_control_layout.dart';
 import 'package:PiliPlus/services/service_locator.dart';
 import 'package:PiliPlus/utils/android/android_helper.dart';
 import 'package:PiliPlus/utils/desktop/window_controller.dart';
@@ -29,6 +30,15 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:material_ui/material_ui.dart';
 
 List<SettingsModel> get playSettings => [
+  PopupModel(
+    title: '播放器布局',
+    leading: const Icon(Icons.view_compact_outlined),
+    value: () => Pref.playerControlLayout,
+    items: PlayerControlLayout.values,
+    onSelected: (value, setState) => GStorage.setting
+        .put(SettingBoxKey.playerControlLayout, value.name)
+        .whenComplete(setState),
+  ),
   NormalModel(
     onTap: (context, setState) => Get.toNamed('/playSpeedSet'),
     leading: const Icon(Icons.speed_outlined),

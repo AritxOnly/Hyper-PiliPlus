@@ -305,6 +305,8 @@ internal data class NavigationDestination(
 )
 
 internal data class NavigationUiState(
+    val wideFold: Boolean = false,
+    val dockCollapsed: Boolean = false,
     val destinations: List<NavigationDestination> = emptyList(),
     val selectedIndex: Int = 0,
     val visible: Boolean = false,
@@ -334,6 +336,8 @@ internal data class NavigationUiState(
                 .orEmpty()
             fun color(name: String, fallback: Int) = (args[name] as? Number)?.toInt() ?: fallback
             return NavigationUiState(
+                wideFold = args["wideFold"] == true,
+                dockCollapsed = args["dockCollapsed"] == true,
                 destinations = destinations,
                 selectedIndex = ((args["selectedIndex"] as? Number)?.toInt() ?: 0)
                     .coerceIn(0, (destinations.size - 1).coerceAtLeast(0)),

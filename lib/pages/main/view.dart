@@ -39,6 +39,28 @@ class _MainAppState extends PopScopeState<MainApp>
   late ColorScheme _colorScheme;
   Brightness? _brightness;
   bool _isMainRouteActive = true;
+  bool _wideFold = false;
+  final _dockCollapsed = false.obs;
+  double _dockTravel = 0;
+  Worker? _dockTabWorker;
+
+  void _resetDock() {
+    _dockTravel = 0;
+    _dockCollapsed.value = false;
+  }
+
+  bool _observeDockScroll(ScrollUpdateNotification event) {
+    if (event.dragDetails == null || event.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    final delta =
+        (event.scrollDelta ?? 0) *
+        (event.metrics.axisDirection == AxisDirection.up ? -1 : 1);
+    if (_dockTravel * delta < 0) _dockTravel = 0;
+    _dockTravel = (_dockTravel + delta).clamp(-6.0, 6.0);
+    if (_dockTravel.abs() == 6) _dockCollapsed.value = _dockTravel > 0;
+    return false;
+  }
 
   @override
   bool get initCanPop => false;
@@ -47,6 +69,7 @@ class _MainAppState extends PopScopeState<MainApp>
   void initState() {
     super.initState();
     if (Platform.isAndroid) {
+      _dockTabWorker = ever(_mainController.selectedIndex, (_) => _resetDock());
       PiliAndroidHelper.setMiuixDestinationHandler(_mainController.setIndex);
     }
     addObserverMobile(this);
@@ -65,6 +88,15 @@ class _MainAppState extends PopScopeState<MainApp>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final size = MediaQuery.sizeOf(context);
+    final wideFold =
+        Platform.isAndroid &&
+        size.width >= 400 &&
+        size.width < 840 &&
+        size.height >= 400 &&
+        size.height / size.width <= 1.65;
+    if (_wideFold != wideFold) _resetDock();
+    _wideFold = wideFold;
     _padding = MediaQuery.viewPaddingOf(context);
     _colorScheme = ColorScheme.of(context);
     final brightness = _colorScheme.brightness;
@@ -99,6 +131,7 @@ class _MainAppState extends PopScopeState<MainApp>
 
   @override
   void didPushNext() {
+    _resetDock();
     _isMainRouteActive = false;
     if (Platform.isAndroid) {
       PiliAndroidHelper.hideMiuixNavigation();
@@ -119,6 +152,7 @@ class _MainAppState extends PopScopeState<MainApp>
 
   @override
   void dispose() {
+    _dockTabWorker?.dispose();
     if (Platform.isAndroid) {
       PiliAndroidHelper.setMiuixDestinationHandler(null);
       PiliAndroidHelper.hideMiuixNavigation();
@@ -274,6 +308,7 @@ class _MainAppState extends PopScopeState<MainApp>
   Widget _nativeMiuixNavigationSync() => Obx(() {
     final selectedIndex = _mainController.selectedIndex.value;
     final visible = _nativeNavigationVisible;
+    final collapsed = _dockCollapsed.value;
     final dynCount = _mainController.dynCount.value;
     final dynamicBadgeMode = _mainController.dynamicBadgeMode;
     final destinations = _mainController.navigationBars
@@ -295,6 +330,8 @@ class _MainAppState extends PopScopeState<MainApp>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       PiliAndroidHelper.updateMiuixNavigation(
+        wideFold: _wideFold,
+        dockCollapsed: collapsed,
         destinations: destinations,
         selectedIndex: selectedIndex,
         visible: visible && _usesNativeMiuixNavigation,
@@ -332,7 +369,7 @@ class _MainAppState extends PopScopeState<MainApp>
               () => DrawerTheme(
                 data: DrawerThemeData(
                   width:
-                      (_mainController.hideSideBarLabel ? 80 : 130) +
+                      (_mainController.hideSideBarLabel.value ? 80 : 130) +
                       _padding.left,
                 ),
                 child: NavigationDrawer(
@@ -343,17 +380,13 @@ class _MainAppState extends PopScopeState<MainApp>
                   selectedIndex: _mainController.selectedIndex.value,
                   header: Expanded(flex: 4, child: userAndSearchVertical()),
                   tilePadding: const .symmetric(vertical: 5, horizontal: 12),
-                  indicatorShape: _mainController.hideSideBarLabel
-                      ? const RoundedRectangleBorder(
-                          borderRadius: .all(.circular(12)),
-                        )
-                      : const RoundedRectangleBorder(
-                          borderRadius: .all(.circular(16)),
-                        ),
+                  indicatorShape: _mainController.hideSideBarLabel.value
+                      ? const CircleBorder()
+                      : const StadiumBorder(),
                   children: _mainController.navigationBars
                       .map(
                         (e) => NavigationDrawerDestination(
-                          label: _mainController.hideSideBarLabel
+                          label: _mainController.hideSideBarLabel.value
                               ? Semantics(
                                   label: e.label,
                                   child: const SizedBox.shrink(),
@@ -376,7 +409,10 @@ class _MainAppState extends PopScopeState<MainApp>
       return Obx(
         () => NavigationRail(
           groupAlignment: 0.5,
-          labelType: _mainController.hideSideBarLabel ? .none : .selected,
+          labelType: _mainController.hideSideBarLabel.value ? .none : .selected,
+          indicatorShape: _mainController.hideSideBarLabel.value
+              ? const CircleBorder()
+              : const StadiumBorder(),
           leading: userAndSearchVertical(),
           backgroundColor: Colors.transparent,
           onDestinationSelected: _mainController.setIndex,
@@ -417,6 +453,16 @@ class _MainAppState extends PopScopeState<MainApp>
         children: _mainController.navigationBars.map((i) => i.page).toList(),
       );
     }
+
+    child = NotificationListener<ScrollUpdateNotification>(
+      onNotification:
+          _mainController.useBottomNav &&
+              _wideFold &&
+              _usesNativeMiuixNavigation
+          ? _observeDockScroll
+          : null,
+      child: child,
+    );
 
     Widget? sideBar;
     Widget? bottomNav;
@@ -504,6 +550,7 @@ class _MainAppState extends PopScopeState<MainApp>
 
   Widget userAndSearchVertical() {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         userAvatar(colorScheme: _colorScheme, mainController: _mainController),
         const SizedBox(height: 8),
@@ -516,6 +563,18 @@ class _MainAppState extends PopScopeState<MainApp>
           ),
           onPressed: () => Get.toNamed('/search'),
         ),
+        if (_mainController.navigationBars.length > 1)
+          Obx(
+            () => IconButton(
+              tooltip: _mainController.hideSideBarLabel.value ? '展开侧栏' : '折叠侧栏',
+              icon: Icon(
+                _mainController.hideSideBarLabel.value
+                    ? Icons.menu
+                    : Icons.menu_open,
+              ),
+              onPressed: _mainController.toggleSideBar,
+            ),
+          ),
       ],
     );
   }
