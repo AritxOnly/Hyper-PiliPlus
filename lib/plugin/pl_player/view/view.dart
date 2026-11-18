@@ -128,7 +128,17 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   late final CommonIntroController introController = widget.introController!;
   PgcIntroController get pgcController => introController as PgcIntroController;
   UgcIntroController get ugcController => introController as UgcIntroController;
-  late final videoDetailController = widget.videoDetailController!;
+  /// 点播页必传 [VideoDetailController]；直播间只传 [PlPlayerController]，
+  /// 从不传 videoDetailController（见 pages/live_room/view.dart）。
+  /// 保持可空，禁止用 `!` 缓存——否则 build 里任何无条件访问都会让
+  /// 进入直播间直接抛 `Null check operator used on a null value`。
+  VideoDetailController? get videoDetailController =>
+      widget.videoDetailController;
+
+  /// 仅限确定运行在点播页的分支使用；缺失时抛带说明的异常而非裸断言。
+  VideoDetailController get _vodController =>
+      videoDetailController ??
+      (throw StateError('videoDetailController 未注入：本分支只能在点播页使用'));
 
   final _playerKey = GlobalKey();
   final _videoKey = GlobalKey();
@@ -1447,6 +1457,9 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
 
   @override
   Widget build(BuildContext context) {
+    // 直播间不注入 videoDetailController，所有依赖它的 UI 都需用这个
+    // 可空局部量做守卫，禁止裸 `!`。
+    final vod = videoDetailController;
     maxWidth = widget.maxWidth;
     maxHeight = widget.maxHeight;
     final isFullScreen = this.isFullScreen;
@@ -1707,8 +1720,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                 children: [
                   AppBarAni(
                     isTop: true,
+                    // 直播间不注入 videoDetailController，退化为按视口方向判断，
+                    // 与点播页 isPortrait = maxHeight >= maxWidth 的语义保持一致。
                     topSafeArea:
-                        videoDetailController.isPortrait && !isFullScreen,
+                        (vod?.isPortrait ?? maxHeight >= maxWidth) &&
+                        !isFullScreen,
                     controller: _animationController,
                     isFullScreen: isFullScreen,
                     removeSafeArea: plPlayerController.removeSafeArea,
@@ -1733,10 +1749,10 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                           isFullScreen: isFullScreen,
                           animCtr: _animationController,
                           controller: plPlayerController,
-                          videoDetailController: videoDetailController,
+                          videoDetailController: _vodController,
                           buildBottomControl: (progress, layout) =>
                               buildBottomControl(
-                                videoDetailController,
+                                _vodController,
                                 maxWidth > maxHeight,
                                 progress,
                                 layout,
@@ -1861,22 +1877,22 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                         ),
                       ),
                       if (plPlayerController.enableBlock &&
-                          videoDetailController.segmentProgressList.isNotEmpty)
+                          (vod?.segmentProgressList.isNotEmpty ?? false))
                         Positioned(
                           left: 0,
                           right: 0,
                           bottom: 0.75,
                           child: SegmentProgressBar(
-                            segments: videoDetailController.segmentProgressList,
+                            segments: vod!.segmentProgressList,
                           ),
                         ),
                       if (plPlayerController.showViewPoints &&
-                          videoDetailController.viewPointList.isNotEmpty &&
-                          videoDetailController.showVP.value)
+                          (vod?.viewPointList.isNotEmpty ?? false) &&
+                          vod!.showVP.value)
                         Padding(
                           padding: const .only(bottom: 4.25),
                           child: ViewPointSegmentProgressBar(
-                            segments: videoDetailController.viewPointList,
+                            segments: vod.viewPointList,
                             onSeek: PlatformUtils.isMobile
                                 ? (position) {
                                     if (!plPlayerController
@@ -1891,11 +1907,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                                 : null,
                           ),
                         ),
-                      if (plPlayerController.showDmChart &&
-                          videoDetailController.showDmTrendChart.value)
-                        if (videoDetailController.dmTrend.value?.dataOrNull
-                            case final list?)
-                          buildDmChart(primary, list, videoDetailController),
+                      if (vod != null &&
+                          plPlayerController.showDmChart &&
+                          vod.showDmTrendChart.value)
+                        if (vod.dmTrend.value?.dataOrNull case final list?)
+                          buildDmChart(primary, list, vod),
                     ],
                   ),
                 );
@@ -2183,9 +2199,10 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   }
 
   Future<void> _screenshotWebp() async {
-    final videoInfo = videoDetailController.data;
+    final controller = _vodController;
+    final videoInfo = controller.data;
     final ids = videoInfo.dash!.video!.availableVideoQualities;
-    final video = videoDetailController.findVideoByQa(ids.min);
+    final video = controller.findVideoByQa(ids.min);
 
     String? url = video.baseUrl;
     if (url == null) return;
@@ -2225,7 +2242,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   title: '选择画质',
                   value: () => qa.code,
                   onSelected: (value) {
-                    final video = videoDetailController.findVideoByQa(value);
+                    final video = _vodController.findVideoByQa(value);
                     url = video.baseUrl;
                     qa = video.quality;
                     return false;
@@ -2363,7 +2380,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     if (_timeRegExp.firstMatch(data) case final timeStr?) {
       final offset = DurationUtils.parseDuration(timeStr.group(0));
       if (0 < offset &&
-          offset * 1000 < videoDetailController.data.timeLength!) {
+          offset * 1000 < (videoDetailController?.data.timeLength ?? 0)) {
         return offset;
       }
     }
